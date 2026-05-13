@@ -1,0 +1,71 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Global Helpers ---
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Product Validation ---
+    function isValidProduct(data) {
+      return data.keys().hasAll(['name', 'purchasePrice', 'sellingPrice', 'stock', 'createdAt', 'updatedAt'])
+        && data.keys().size() == 6
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 200
+        && data.purchasePrice is number && data.purchasePrice >= 0
+        && data.sellingPrice is number && data.sellingPrice >= 0
+        && data.stock is number
+        && data.createdAt == request.time
+        && data.updatedAt == request.time;
+    }
+
+    // --- Sale Validation ---
+    function isValidSale(data) {
+      return data.keys().hasAll(['receiptNumber', 'items', 'subtotal', 'surcharge', 'total', 'paymentMethod', 'createdAt'])
+        && data.receiptNumber is string && data.receiptNumber.size() > 0
+        && data.items is list && data.items.size() > 0
+        && data.subtotal is number && data.subtotal >= 0
+        && data.surcharge is number && data.surcharge >= 0
+        && data.total is number && data.total >= 0
+        && data.paymentMethod in ['cash', 'card', 'transfer']
+        && data.createdAt == request.time
+        && (data.customerName == null || (data.customerName is string && data.customerName.size() <= 100));
+    }
+
+    // --- Collections ---
+
+    match /products/{productId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(productId) && isValidProduct(incoming());
+      allow update: if isSignedIn() && isValidProduct(incoming()) 
+        && (
+          // Action: Edit Product
+          incoming().diff(existing()).affectedKeys().hasOnly(['name', 'purchasePrice', 'sellingPrice', 'details', 'stock', 'updatedAt'])
+        );
+      allow delete: if isSignedIn();
+    }
+
+    match /sales/{saleId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(saleId) && isValidSale(incoming());
+      // Sales are typically immutable once generated
+      allow update, delete: if false;
+    }
+  }
+}
