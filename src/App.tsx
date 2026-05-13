@@ -3,17 +3,32 @@ import { ViewType } from './types';
 import ProductManager from './components/ProductManager';
 import SalesPoint from './components/SalesPoint';
 import ReceiptHistory from './components/ReceiptHistory';
+import Finances from './components/Finances';
+import QuoteSystem from './components/QuoteSystem';
 import { 
   Menu, 
   Package, 
   ShoppingCart, 
   History, 
-  Store
+  Store,
+  BarChart2,
+  FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<ViewType>('menu');
+
+  const handleNavigate = (view: ViewType) => {
+    if (view === 'finances') {
+      const pass = prompt('Ingrese contraseña para acceder a Finanzas:');
+      if (pass !== 'skj2ljbk') {
+        alert('Acceso denegado: Contraseña incorrecta');
+        return;
+      }
+    }
+    setCurrentView(view);
+  };
 
   return (
     <div className="min-h-screen bg-emerald-50 flex flex-col md:flex-row border-8 border-emerald-900">
@@ -31,31 +46,44 @@ export default function App() {
         <div className="flex-1 space-y-3">
           <NavItem 
             active={currentView === 'menu'} 
-            onClick={() => setCurrentView('menu')} 
+            onClick={() => handleNavigate('menu')} 
             icon={<Menu size={20} />} 
             label="INICIO" 
           />
           <NavItem 
             active={currentView === 'products'} 
-            onClick={() => setCurrentView('products')} 
+            onClick={() => handleNavigate('products')} 
             icon={<Package size={20} />} 
             label="PRODUCTOS" 
           />
           <NavItem 
             active={currentView === 'sales'} 
-            onClick={() => setCurrentView('sales')} 
+            onClick={() => handleNavigate('sales')} 
             icon={<ShoppingCart size={20} />} 
             label="VENTAS" 
           />
           <NavItem 
             active={currentView === 'history'} 
-            onClick={() => setCurrentView('history')} 
+            onClick={() => handleNavigate('history')} 
             icon={<History size={20} />} 
             label="HISTORIAL" 
           />
+          <NavItem 
+            active={currentView === 'quotes'} 
+            onClick={() => handleNavigate('quotes')} 
+            icon={<FileText size={20} />} 
+            label="PRESUPUESTOS" 
+          />
+          
+          <div className="pt-4 mt-4 border-t border-emerald-800">
+            <NavItem 
+              active={currentView === 'finances'} 
+              onClick={() => handleNavigate('finances')} 
+              icon={<BarChart2 size={20} />} 
+              label="FINANZAS" 
+            />
+          </div>
         </div>
-
-
       </nav>
 
       {/* Main Content Area */}
@@ -69,10 +97,12 @@ export default function App() {
               exit={{ opacity: 0, scale: 1.02 }}
               transition={{ duration: 0.15 }}
             >
-              {currentView === 'menu' && <MainView onNavigate={setCurrentView} />}
+              {currentView === 'menu' && <MainView onNavigate={handleNavigate} />}
               {currentView === 'products' && <ProductManager />}
               {currentView === 'sales' && <SalesPoint />}
               {currentView === 'history' && <ReceiptHistory />}
+              {currentView === 'quotes' && <QuoteSystem />}
+              {currentView === 'finances' && <Finances />}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -105,7 +135,7 @@ function MainView({ onNavigate }: { onNavigate: (v: ViewType) => void }) {
         <p className="text-emerald-600 text-xl font-bold uppercase tracking-widest">Uniformes La Torre</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         <MenuCard 
           onClick={() => onNavigate('products')}
           icon={<Package className="w-12 h-12" />}
@@ -126,6 +156,20 @@ function MainView({ onNavigate }: { onNavigate: (v: ViewType) => void }) {
           title="HISTORIAL"
           description="RESUMEN DE BOLETAS"
           color="bg-emerald-900"
+        />
+        <MenuCard 
+          onClick={() => onNavigate('quotes')}
+          icon={<FileText className="w-12 h-12" />}
+          title="PRESUPUESTOS"
+          description="GENERAR COTIZACIONES"
+          color="bg-slate-700"
+        />
+        <MenuCard 
+          onClick={() => onNavigate('finances')}
+          icon={<BarChart2 className="w-12 h-12" />}
+          title="FINANZAS"
+          description="BALANCE MENSUAL"
+          color="bg-blue-900"
         />
       </div>
 

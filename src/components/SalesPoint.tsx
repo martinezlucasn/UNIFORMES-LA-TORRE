@@ -12,6 +12,7 @@ export default function SalesPoint() {
   const [isCardPayment, setIsCardPayment] = useState(false);
   const [generatePDF, setGeneratePDF] = useState(true);
   const [customerName, setCustomerName] = useState('');
+  const [deposit, setDeposit] = useState<number>(0);
 
   useEffect(() => {
     loadProducts();
@@ -40,6 +41,7 @@ export default function SalesPoint() {
         name: product.name,
         quantity: 1,
         price: product.sellingPrice,
+        purchasePrice: product.purchasePrice,
         subtotal: product.sellingPrice
       }]);
     }
@@ -83,14 +85,17 @@ export default function SalesPoint() {
 
     // 3. Register Sale
     const receiptNumber = localDb.getNextReceiptNumber();
+    const finalTotal = total;
     const saleData: Omit<Sale, 'id' | 'createdAt'> = {
       receiptNumber,
       customerName: customerName.trim() || undefined,
       items: cart,
       subtotal,
       surcharge,
-      total,
+      total: finalTotal,
       paymentMethod: isCardPayment ? 'card' : 'cash',
+      deposit: Number(deposit) || 0,
+      balanceDue: finalTotal - (Number(deposit) || 0),
     };
     
     const savedSale = localDb.addSale(saleData);
@@ -102,6 +107,7 @@ export default function SalesPoint() {
     alert('Venta realizada con éxito');
     setCart([]);
     setCustomerName('');
+    setDeposit(0);
     setIsCardPayment(false);
     loadProducts(); // Fresh stock data
   };
@@ -243,6 +249,21 @@ export default function SalesPoint() {
                 <span>Aplicado</span>
             </div>
           )}
+          
+          <div className="bg-emerald-50 p-3 border-2 border-emerald-900 mt-2">
+            <label className="block text-[10px] font-black text-emerald-900 uppercase tracking-widest mb-1">Efectivo / Seña / Adelanto ($)</label>
+            <input
+              type="number"
+              value={deposit || ''}
+              onChange={(e) => setDeposit(Number(e.target.value))}
+              className="w-full bg-transparent border-b-2 border-emerald-900 text-xl font-black outline-none"
+              placeholder="0.00"
+            />
+            {deposit > 0 && (
+              <p className="text-[10px] text-emerald-700 font-bold mt-1 uppercase">Saldo pendiente: ${(total - (deposit || 0)).toFixed(2)}</p>
+            )}
+          </div>
+
           <div className="flex justify-between items-end pt-2">
             <span className="text-xs font-black uppercase tracking-widest text-slate-900">Total a Pagar</span>
             <span className="text-4xl font-black text-gray-900 tracking-tighter italic leading-none">${total.toFixed(0)}</span>

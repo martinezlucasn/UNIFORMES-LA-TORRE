@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 
 export default function ProductManager() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<Partial<Product & { newStock?: number }> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -73,6 +74,20 @@ export default function ProductManager() {
           </button>
         )}
       </div>
+
+      {/* Filtro de búsqueda */}
+      {!isEditing && (
+        <div className="bold-card p-4 mb-8 flex items-center gap-4">
+          <div className="bg-slate-900 p-2 text-white italic font-black text-xs uppercase tracking-widest px-4">FILTRAR</div>
+          <input
+            type="text"
+            className="w-full h-full outline-none text-xl font-black uppercase tracking-tighter placeholder:text-slate-200"
+            placeholder="Buscar por nombre o detalle..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+          />
+        </div>
+      )}
 
       <AnimatePresence>
         {isEditing && (
@@ -193,7 +208,10 @@ export default function ProductManager() {
                 <tr>
                   <td colSpan={5} className="px-6 py-20 text-center text-slate-400 font-bold uppercase italic">No hay productos.</td>
                 </tr>
-              ) : products.map(product => (
+              ) : products.filter(p => 
+                p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (p.details || '').toLowerCase().includes(searchTerm.toLowerCase())
+              ).map(product => (
                 <tr key={product.id} className="hover:bg-emerald-50/50 transition-colors">
                   <td className="px-6 py-4">
                     <p className="text-gray-900 font-black text-lg uppercase tracking-tighter">{product.name}</p>

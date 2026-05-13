@@ -7,6 +7,7 @@ import { generateReceiptPDF } from '../PDFGenerator';
 
 export default function ReceiptHistory() {
   const [sales, setSales] = useState<Sale[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,12 +30,26 @@ export default function ReceiptHistory() {
         <p className="text-emerald-600 font-bold uppercase tracking-widest text-sm mb-1">Registro de Operaciones</p>
       </div>
 
+      {/* Filtro de búsqueda */}
+      <div className="bold-card p-4 mb-8 flex items-center gap-4 bg-white border-4 border-emerald-900 shadow-[8px_8px_0px_0px_rgba(6,78,59,1)]">
+        <div className="bg-emerald-900 p-2 text-white italic font-black text-xs uppercase tracking-widest px-4">BUSCAR BOLETA</div>
+        <input
+          type="text"
+          className="w-full h-full outline-none text-xl font-black uppercase tracking-tighter placeholder:text-slate-200"
+          placeholder="Escriba el número de boleta (ej: 00001)..."
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+        />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {loading ? (
           <div className="col-span-full py-20 text-center text-slate-300 font-black uppercase italic text-2xl">Cargando Archivos...</div>
         ) : sales.length === 0 ? (
           <div className="col-span-full py-20 text-center text-slate-300 font-black uppercase italic text-2xl border-4 border-dotted border-slate-100">No hay ventas registradas.</div>
-        ) : sales.map(sale => (
+        ) : sales
+            .filter(sale => sale.receiptNumber.includes(searchTerm))
+            .map(sale => (
           <div key={sale.id} className="bg-white border-t-8 border-slate-900 shadow-2xl p-8 hover:transform hover:-translate-y-2 transition-all relative overflow-hidden group">
             <div className="absolute top-0 right-0 p-2 bg-slate-900 text-white font-black text-[10px] uppercase tracking-tighter z-10">
               {sale.receiptNumber}

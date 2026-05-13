@@ -14,6 +14,7 @@ export interface SaleItem {
   name: string;
   quantity: number;
   price: number;
+  purchasePrice: number; // Added to track cost at time of sale
   subtotal: number;
 }
 
@@ -26,7 +27,9 @@ export interface Sale {
   surcharge: number;
   total: number;
   paymentMethod: 'cash' | 'card' | 'transfer';
+  deposit?: number;
+  balanceDue?: number;
   createdAt: any;
 }
 
-export type ViewType = 'menu' | 'products' | 'sales' | 'history';
+export type ViewType = 'menu' | 'products' | 'sales' | 'history' | 'finances' | 'quotes';
