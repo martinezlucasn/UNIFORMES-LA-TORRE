@@ -19,9 +19,11 @@ export default function App() {
     <div className="min-h-screen bg-emerald-50 flex flex-col md:flex-row border-8 border-emerald-900">
       {/* Sidebar Navigation */}
       <nav className="bg-emerald-900 w-full md:w-64 flex flex-col p-6 h-screen md:sticky md:top-0 text-white shadow-2xl">
-        <div className="flex flex-col items-center mb-8">
-          <img src="/logo.png" alt="Logo" className="w-32 h-32 object-contain mb-4" />
-          <span className="font-black text-white text-xl tracking-tighter uppercase leading-none text-center">
+        <div className="flex items-center gap-3 mb-12">
+          <div className="bg-white text-emerald-900 p-2 rounded font-black text-xl italic">
+            LT
+          </div>
+          <span className="font-black text-white text-2xl tracking-tighter uppercase leading-none">
             La Torre <br /><span className="text-emerald-400 text-xs tracking-widest">Uniformes</span>
           </span>
         </div>
@@ -53,16 +55,7 @@ export default function App() {
           />
         </div>
 
-        <div className="mt-auto pt-6 border-t border-emerald-800">
-          <p className="text-[10px] font-black uppercase text-emerald-400 tracking-widest mb-2">Modo Offline</p>
-          <div className="flex items-center gap-2 text-white">
-            <div className="w-8 h-8 rounded bg-emerald-700 flex items-center justify-center font-bold">A</div>
-            <div className="overflow-hidden">
-               <p className="text-xs font-bold truncate">Admin Local</p>
-               <p className="text-[9px] text-emerald-400 font-bold uppercase">Datos en Navegador</p>
-            </div>
-          </div>
-        </div>
+
       </nav>
 
       {/* Main Content Area */}
@@ -137,8 +130,8 @@ function MainView({ onNavigate }: { onNavigate: (v: ViewType) => void }) {
       </div>
 
       <div className="mt-12 bg-white p-8 border-8 border-black flex flex-col md:flex-row items-center gap-8 shadow-2xl">
-        <div className="bg-emerald-900 p-2 rounded italic text-white flex items-center justify-center">
-          <img src="/logo.png" alt="Logo" className="w-24 h-24 object-contain" />
+        <div className="bg-emerald-900 p-6 rounded italic text-white flex items-center justify-center">
+          <Store size={48} />
         </div>
         <div>
           <h3 className="text-3xl font-black text-gray-900 uppercase italic">Uniformes La Torre</h3>

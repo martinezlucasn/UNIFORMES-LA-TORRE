@@ -15,13 +15,6 @@ export const generateReceiptPDF = (sale: Sale) => {
   
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  // Logo
-  try {
-    doc.addImage('/logo.png', 'PNG', pageWidth / 2 - 15, 5, 30, 30);
-  } catch (e) {
-    console.error('Core: could not load logo for PDF');
-  }
-
   // Header
   doc.setFont('Helvetica', 'bold'); // Arial fallback in jsPDF
   doc.setFontSize(16);
