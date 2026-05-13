@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../firebase';
+import { localDb } from '../localDb';
 import { Sale } from '../types';
 import { FileText, Download, User, Calendar, Clock, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
@@ -11,13 +10,13 @@ export default function ReceiptHistory() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(collection(db, 'sales'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setSales(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sale)));
-      setLoading(false);
-    }, (error) => handleFirestoreError(error, OperationType.GET, 'sales'));
-    return () => unsubscribe();
+    loadSales();
   }, []);
+
+  const loadSales = () => {
+    setSales(localDb.getSales());
+    setLoading(false);
+  };
 
   const handleDownload = (sale: Sale) => {
     generateReceiptPDF(sale);
@@ -60,11 +59,11 @@ export default function ReceiptHistory() {
             <div className="space-y-3 mb-8">
               <div className="flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                 <Calendar size={14} className="text-emerald-600" />
-                <span>{sale.createdAt ? format(sale.createdAt.toDate(), 'dd MMMM yyyy') : '...'}</span>
+                <span>{sale.createdAt ? format(new Date(sale.createdAt), 'dd MMMM yyyy') : '...'}</span>
               </div>
               <div className="flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                 <Clock size={14} className="text-emerald-600" />
-                <span>{sale.createdAt ? format(sale.createdAt.toDate(), 'HH:mm') : '...'}</span>
+                <span>{sale.createdAt ? format(new Date(sale.createdAt), 'HH:mm') : '...'}</span>
               </div>
               <div className="flex items-center gap-3 text-[10px] font-black text-slate-900 uppercase tracking-widest bg-slate-50 p-2">
                 <User size={14} className="text-emerald-600" />

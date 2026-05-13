@@ -1,69 +1,59 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp, query, orderBy } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../firebase';
+import { localDb } from '../localDb';
 import { Product } from '../types';
-import { Plus, Edit2, Trash2, X, Save, AlertCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function ProductManager() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isEditing, setIsEditing] = useState(false);
-  const [currentProduct, setCurrentProduct] = useState<Partial<Product> | null>(null);
+  const [currentProduct, setCurrentProduct] = useState<Partial<Product & { newStock?: number }> | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(collection(db, 'products'), orderBy('name', 'asc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const prods = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
-      setProducts(prods);
-      setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'products');
-    });
-    return () => unsubscribe();
+    loadProducts();
   }, []);
 
-  const handleSave = async (e: React.FormEvent) => {
+  const loadProducts = () => {
+    const data = localDb.getProducts();
+    setProducts(data);
+    setLoading(false);
+  };
+
+  const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentProduct?.name || currentProduct.purchasePrice === undefined || currentProduct.sellingPrice === undefined || currentProduct.stock === undefined) return;
 
-    try {
-      const productData = {
-        name: currentProduct.name,
-        purchasePrice: Number(currentProduct.purchasePrice),
-        sellingPrice: Number(currentProduct.sellingPrice),
-        details: currentProduct.details || '',
-        stock: Number(currentProduct.stock),
-        updatedAt: serverTimestamp(),
-      };
+    const finalStock = Number(currentProduct.stock) + (Number(currentProduct.newStock) || 0);
 
-      if (currentProduct.id) {
-        await updateDoc(doc(db, 'products', currentProduct.id), productData);
-      } else {
-        await addDoc(collection(db, 'products'), {
-          ...productData,
-          createdAt: serverTimestamp(),
-        });
-      }
-      setIsEditing(false);
-      setCurrentProduct(null);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, 'products');
+    const productData = {
+      name: currentProduct.name,
+      purchasePrice: Number(currentProduct.purchasePrice),
+      sellingPrice: Number(currentProduct.sellingPrice),
+      details: currentProduct.details || '',
+      stock: finalStock,
+    };
+
+    if (currentProduct.id) {
+      localDb.updateProduct(currentProduct.id, productData);
+    } else {
+      localDb.addProduct(productData);
     }
+    
+    loadProducts();
+    setIsEditing(false);
+    setCurrentProduct(null);
   };
 
   const handleEdit = (product: Product) => {
-    setCurrentProduct(product);
+    setCurrentProduct({ ...product, newStock: 0 });
     setIsEditing(true);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     if (window.confirm('¿Estás seguro de eliminar este producto?')) {
-      try {
-        await deleteDoc(doc(db, 'products', id));
-      } catch (error) {
-        handleFirestoreError(error, OperationType.DELETE, `products/${id}`);
-      }
+      localDb.deleteProduct(id);
+      loadProducts();
     }
   };
 
@@ -130,12 +120,28 @@ export default function ProductManager() {
                 <label className="bold-label">Stock Actual (un.)</label>
                 <input
                   required
+                  disabled={currentProduct?.id !== undefined}
                   type="number"
                   value={currentProduct?.stock || ''}
                   onChange={e => setCurrentProduct({ ...currentProduct, stock: Number(e.target.value) })}
-                  className="bold-input"
+                  className={`bold-input ${currentProduct?.id ? 'bg-gray-100 italic cursor-not-allowed' : ''}`}
                 />
               </div>
+              {currentProduct?.id && (
+                <div>
+                  <label className="bold-label text-emerald-600">Ingreso de Nuevo Stock (+)</label>
+                  <input
+                    type="number"
+                    value={currentProduct?.newStock || ''}
+                    onChange={e => setCurrentProduct({ ...currentProduct, newStock: Number(e.target.value) })}
+                    className="bold-input border-emerald-300 bg-emerald-50"
+                    placeholder="Escriba cantidad a sumar"
+                  />
+                  <p className="text-[10px] text-emerald-600 font-bold mt-1">
+                    Se sumará al stock actual al guardar. Total final: {(Number(currentProduct.stock) || 0) + (Number(currentProduct.newStock) || 0)}
+                  </p>
+                </div>
+              )}
               <div>
                 <label className="bold-label">Detalles / Especificaciones</label>
                 <input

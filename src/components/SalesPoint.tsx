@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, addDoc, updateDoc, doc, serverTimestamp, query, orderBy, runTransaction } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../firebase';
+import { localDb } from '../localDb';
 import { Product, Sale, SaleItem } from '../types';
 import { Search, ShoppingCart, Trash2, CreditCard, Receipt, User, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -15,12 +14,12 @@ export default function SalesPoint() {
   const [customerName, setCustomerName] = useState('');
 
   useEffect(() => {
-    const q = query(collection(db, 'products'), orderBy('name', 'asc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setProducts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product)));
-    }, (error) => handleFirestoreError(error, OperationType.GET, 'products'));
-    return () => unsubscribe();
+    loadProducts();
   }, []);
+
+  const loadProducts = () => {
+    setProducts(localDb.getProducts().sort((a, b) => a.name.localeCompare(b.name)));
+  };
 
   const filteredProducts = products.filter(p => 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -65,54 +64,46 @@ export default function SalesPoint() {
   const surcharge = isCardPayment ? subtotal * 0.1 : 0;
   const total = subtotal + surcharge;
 
-  const handleCheckout = async () => {
+  const handleCheckout = () => {
     if (cart.length === 0) return;
 
-    try {
-      await runTransaction(db, async (transaction) => {
-        // 1. Check/Decrement Stock
-        for (const item of cart) {
-          const productRef = doc(db, 'products', item.productId);
-          const productSnap = await transaction.get(productRef);
-          if (!productSnap.exists()) throw new Error(`Producto ${item.name} no existe.`);
-          const currentStock = productSnap.data()?.stock || 0;
-          if (currentStock < item.quantity) {
-            alert(`Stock insuficiente para ${item.name}. Disponible: ${currentStock}`);
-            throw new Error(`Insufficient stock for ${item.name}`);
-          }
-          transaction.update(productRef, { stock: currentStock - item.quantity });
-        }
-
-        // 2. Register Sale
-        const receiptNumber = `${Date.now().toString().slice(-6)}`;
-        const saleData = {
-          receiptNumber,
-          customerName: customerName.trim() || null,
-          items: cart,
-          subtotal,
-          surcharge,
-          total,
-          paymentMethod: isCardPayment ? 'card' : 'cash',
-          createdAt: serverTimestamp(),
-        };
-        
-        const saleRef = doc(collection(db, 'sales'));
-        transaction.set(saleRef, saleData);
-
-        if (generatePDF) {
-            // We can only generate PDF after successfully adding to DB, but Firestore timestamps are null in local snapshots.
-            // So we'll pass a regular date to the generator.
-            generateReceiptPDF({ ...saleData, createdAt: new Date() } as any);
-        }
-      });
-
-      alert('Venta realizada con éxito');
-      setCart([]);
-      setCustomerName('');
-      setIsCardPayment(false);
-    } catch (error) {
-      console.error("Transaction failed: ", error);
+    // 1. Check/Update Stock and validate
+    for (const item of cart) {
+      const prod = products.find(p => p.id === item.productId);
+      if (!prod || prod.stock < item.quantity) {
+        alert(`Stock insuficiente para ${item.name}.`);
+        return;
+      }
     }
+
+    // 2. Perform updates
+    for (const item of cart) {
+      localDb.updateStock(item.productId, item.quantity);
+    }
+
+    // 3. Register Sale
+    const receiptNumber = localDb.getNextReceiptNumber();
+    const saleData: Omit<Sale, 'id' | 'createdAt'> = {
+      receiptNumber,
+      customerName: customerName.trim() || undefined,
+      items: cart,
+      subtotal,
+      surcharge,
+      total,
+      paymentMethod: isCardPayment ? 'card' : 'cash',
+    };
+    
+    const savedSale = localDb.addSale(saleData);
+
+    if (generatePDF) {
+      generateReceiptPDF(savedSale);
+    }
+
+    alert('Venta realizada con éxito');
+    setCart([]);
+    setCustomerName('');
+    setIsCardPayment(false);
+    loadProducts(); // Fresh stock data
   };
 
   return (

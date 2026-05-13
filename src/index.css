@@ -2,8 +2,8 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Playfair Display", serif;
+  --font-sans: "Arial", sans-serif;
+  --font-serif: "Arial", sans-serif;
   
   --color-emerald-950: #064e3b;
   --color-emerald-900: #064e3b;

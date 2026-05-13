@@ -1,6 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { auth, loginWithGoogle, logout } from './firebase';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import React, { useState } from 'react';
 import { ViewType } from './types';
 import ProductManager from './components/ProductManager';
 import SalesPoint from './components/SalesPoint';
@@ -10,93 +8,20 @@ import {
   Package, 
   ShoppingCart, 
   History, 
-  LogOut, 
-  User as UserIcon,
-  ShieldCheck,
   Store
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
   const [currentView, setCurrentView] = useState<ViewType>('menu');
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const handleLogin = async () => {
-    try {
-      await loginWithGoogle();
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      setCurrentView('menu');
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <motion.div 
-          animate={{ scale: [1, 1.1, 1] }}
-          transition={{ repeat: Infinity, duration: 1.5 }}
-          className="bg-white p-8 rounded-full shadow-xl"
-        >
-          <Store className="text-emerald-600 w-12 h-12" />
-        </motion.div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-emerald-600 flex items-center justify-center p-4">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white p-10 rounded-3xl shadow-2xl max-w-md w-full text-center"
-        >
-          <div className="mb-6 flex justify-center">
-            <div className="bg-emerald-100 p-4 rounded-3xl">
-              <ShieldCheck className="text-emerald-600 w-16 h-16" />
-            </div>
-          </div>
-          <h1 className="text-3xl font-black text-gray-900 mb-2">Uniformes La Torre</h1>
-          <p className="text-gray-500 mb-10">Ingresa con tu cuenta autorizada para gestionar el negocio.</p>
-          <button
-            onClick={handleLogin}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-emerald-100 flex items-center justify-center gap-3"
-          >
-            <UserIcon size={20} /> Iniciar sesión con Google
-          </button>
-          <p className="mt-6 text-xs text-gray-400">Acceso restringido solo a personal autorizado</p>
-        </motion.div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-emerald-50 flex flex-col md:flex-row border-8 border-emerald-900">
       {/* Sidebar Navigation */}
       <nav className="bg-emerald-900 w-full md:w-64 flex flex-col p-6 h-screen md:sticky md:top-0 text-white shadow-2xl">
-        <div className="flex items-center gap-3 mb-12">
-          <div className="bg-white text-emerald-900 p-2 rounded font-black text-xl italic">
-            LT
-          </div>
-          <span className="font-black text-white text-2xl tracking-tighter uppercase leading-none">
+        <div className="flex flex-col items-center mb-8">
+          <img src="/logo.png" alt="Logo" className="w-32 h-32 object-contain mb-4" />
+          <span className="font-black text-white text-xl tracking-tighter uppercase leading-none text-center">
             La Torre <br /><span className="text-emerald-400 text-xs tracking-widest">Uniformes</span>
           </span>
         </div>
@@ -129,12 +54,14 @@ export default function App() {
         </div>
 
         <div className="mt-auto pt-6 border-t border-emerald-800">
-          <button
-            onClick={handleLogout}
-            className="w-full text-left p-3 text-emerald-400 hover:bg-emerald-800/50 rounded-xl transition-colors flex items-center gap-3 font-black uppercase text-xs tracking-widest"
-          >
-            <LogOut size={20} /> Salir
-          </button>
+          <p className="text-[10px] font-black uppercase text-emerald-400 tracking-widest mb-2">Modo Offline</p>
+          <div className="flex items-center gap-2 text-white">
+            <div className="w-8 h-8 rounded bg-emerald-700 flex items-center justify-center font-bold">A</div>
+            <div className="overflow-hidden">
+               <p className="text-xs font-bold truncate">Admin Local</p>
+               <p className="text-[9px] text-emerald-400 font-bold uppercase">Datos en Navegador</p>
+            </div>
+          </div>
         </div>
       </nav>
 
@@ -210,8 +137,8 @@ function MainView({ onNavigate }: { onNavigate: (v: ViewType) => void }) {
       </div>
 
       <div className="mt-12 bg-white p-8 border-8 border-black flex flex-col md:flex-row items-center gap-8 shadow-2xl">
-        <div className="bg-emerald-900 p-6 rounded italic text-white flex items-center justify-center">
-          <Store size={48} />
+        <div className="bg-emerald-900 p-2 rounded italic text-white flex items-center justify-center">
+          <img src="/logo.png" alt="Logo" className="w-24 h-24 object-contain" />
         </div>
         <div>
           <h3 className="text-3xl font-black text-gray-900 uppercase italic">Uniformes La Torre</h3>
