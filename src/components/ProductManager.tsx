@@ -115,9 +115,9 @@ export default function ProductManager() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bold-card p-8 mb-12"
+            className="bold-card p-8 mb-12 max-h-[85vh] overflow-y-auto custom-scrollbar"
           >
-            <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-4">
               <div className="md:col-span-2">
                 <label className="bold-label">Nombre del Producto</label>
                 <input
@@ -151,16 +151,6 @@ export default function ProductManager() {
                   className="bold-input"
                 />
               </div>
-              <div className="md:col-span-2">
-                <label className="bold-label">Detalles / Especificaciones</label>
-                <input
-                  type="text"
-                  value={currentProduct?.details || ''}
-                  onChange={e => setCurrentProduct({ ...currentProduct, details: e.target.value })}
-                  className="bold-input"
-                  placeholder="Material, talle, etc."
-                />
-              </div>
 
               {/* Variantes / Talles */}
               <div className="md:col-span-2 bg-emerald-50 p-6 border-4 border-emerald-900 shadow-[8px_8px_0px_0px_rgba(6,78,59,1)]">
@@ -187,33 +177,43 @@ export default function ProductManager() {
                 </div>
 
                 {currentProduct?.hasVariants ? (
-                  <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-                    {variants.map((v, i) => (
-                      <div key={i} className="flex gap-4 items-end bg-white p-3 border-2 border-emerald-900">
-                        <div className="flex-1">
-                          <label className="block text-[9px] font-black text-emerald-700 uppercase">Talle (Ej: M, 42, XL)</label>
-                          <input 
-                            type="text" 
-                            value={v.size}
-                            onChange={e => updateVariant(i, 'size', e.target.value)}
-                            className="w-full border-b font-black uppercase outline-none"
-                          />
+                  <div className="max-h-80 overflow-y-auto pr-2 custom-scrollbar bg-white/30 p-2 border-2 border-emerald-900/10">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {variants.map((v, i) => (
+                        <div key={i} className="flex gap-2 items-center bg-white p-2 border border-emerald-900/30 shadow-[2px_2px_0px_0px_rgba(6,78,59,0.1)]">
+                          <div className="flex-1">
+                            <label className="block text-[8px] font-black text-emerald-700 uppercase leading-none mb-1">Talle</label>
+                            <input 
+                              type="text" 
+                              value={v.size}
+                              onChange={e => updateVariant(i, 'size', e.target.value)}
+                              className="w-full border-b border-transparent focus:border-emerald-500 font-black uppercase outline-none text-xs"
+                              placeholder="M, 42..."
+                            />
+                          </div>
+                          <div className="w-16">
+                            <label className="block text-[8px] font-black text-emerald-700 uppercase leading-none mb-1">Stock</label>
+                            <input 
+                              type="number" 
+                              value={v.stock}
+                              onChange={e => updateVariant(i, 'stock', e.target.value)}
+                              className="w-full border-b border-transparent focus:border-emerald-500 font-black outline-none text-xs"
+                            />
+                          </div>
+                          <button 
+                            type="button" 
+                            onClick={() => removeVariant(i)} 
+                            className="text-red-400 hover:text-red-600 p-1 mt-3"
+                            title="Eliminar talle"
+                          >
+                            <Trash2 size={12} />
+                          </button>
                         </div>
-                        <div className="w-24">
-                          <label className="block text-[9px] font-black text-emerald-700 uppercase">Stock</label>
-                          <input 
-                            type="number" 
-                            value={v.stock}
-                            onChange={e => updateVariant(i, 'stock', e.target.value)}
-                            className="w-full border-b font-black outline-none"
-                          />
-                        </div>
-                        <button type="button" onClick={() => removeVariant(i)} className="text-red-500 p-1 hover:bg-red-50">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    ))}
-                    {variants.length === 0 && <p className="text-center italic text-emerald-800/50 py-4 font-bold uppercase text-xs">Sin talles agregados</p>}
+                      ))}
+                    </div>
+                    {variants.length === 0 && (
+                      <p className="text-center italic text-emerald-800/50 py-6 font-bold uppercase text-[10px]">Sin talles agregados</p>
+                    )}
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-6">
@@ -264,9 +264,9 @@ export default function ProductManager() {
       </AnimatePresence>
 
       <div className="bg-white shadow-2xl border-2 border-slate-200">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-slate-900 text-white uppercase text-[11px] font-black tracking-widest">
+        <div className="overflow-x-auto max-h-[70vh] overflow-y-auto custom-scrollbar">
+          <table className="w-full text-left relative">
+            <thead className="bg-slate-900 text-white uppercase text-[11px] font-black tracking-widest sticky top-0 z-10">
               <tr>
                 <th className="px-6 py-4">Producto</th>
                 <th className="px-6 py-4 text-center">Stock</th>
@@ -285,8 +285,7 @@ export default function ProductManager() {
                   <td colSpan={5} className="px-6 py-20 text-center text-slate-400 font-bold uppercase italic">No hay productos.</td>
                 </tr>
               ) : products.filter(p => 
-                p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (p.details || '').toLowerCase().includes(searchTerm.toLowerCase())
+                p.name.toLowerCase().includes(searchTerm.toLowerCase())
               ).map(product => (
                 <tr key={product.id} className="hover:bg-emerald-50/50 transition-colors">
                   <td className="px-6 py-4">
@@ -297,7 +296,6 @@ export default function ProductManager() {
                           {v.size}: {v.stock}
                         </span>
                       ))}
-                      {!product.hasVariants && <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">{product.details}</p>}
                     </div>
                   </td>
                   <td className="px-6 py-4 text-center">

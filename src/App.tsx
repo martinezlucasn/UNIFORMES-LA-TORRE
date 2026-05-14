@@ -5,6 +5,7 @@ import ProductManager from './components/ProductManager';
 import SalesPoint from './components/SalesPoint';
 import ReceiptHistory from './components/ReceiptHistory';
 import Finances from './components/Finances';
+import Adelantos from './components/Adelantos';
 import QuoteSystem from './components/QuoteSystem';
 import Settings from './components/Settings';
 import { 
@@ -16,6 +17,7 @@ import {
   BarChart2,
   FileText,
   AlertTriangle,
+  Coins,
   Settings as SettingsIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -84,6 +86,12 @@ export default function App() {
             icon={<SettingsIcon size={20} />} 
             label="CONFIGURACIÓN" 
           />
+          <NavItem 
+            active={currentView === 'advances'} 
+            onClick={() => handleNavigate('advances')} 
+            icon={<Coins size={20} />} 
+            label="ADELANTOS" 
+          />
           
           <div className="pt-4 mt-4 border-t border-emerald-800">
             <NavItem 
@@ -113,6 +121,7 @@ export default function App() {
               {currentView === 'history' && <ReceiptHistory />}
               {currentView === 'quotes' && <QuoteSystem />}
               {currentView === 'finances' && <Finances />}
+              {currentView === 'advances' && <Adelantos onBack={() => setCurrentView('menu')} />}
               {currentView === 'settings' && <Settings />}
             </motion.div>
           </AnimatePresence>
@@ -191,17 +200,7 @@ function MainView({ onNavigate }: { onNavigate: (v: ViewType) => void }) {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-8">
-        <div className="bg-white p-6 border-[6px] border-black flex flex-col md:flex-row items-center gap-6 shadow-2xl">
-          <div className="bg-emerald-900 p-6 rounded italic text-white flex items-center justify-center">
-            <Store size={48} />
-          </div>
-          <div>
-            <h3 className="text-3xl font-black text-gray-900 uppercase italic">Uniformes La Torre</h3>
-            <p className="text-slate-500 font-bold text-sm uppercase tracking-widest bg-slate-100 inline-block px-2 py-1 mt-2">Av. 44 Nº 1873 e/ 132 y 133, La Plata</p>
-          </div>
-        </div>
-      </div>
+
 
       {/* Discreet Low Stock Footer */}
       {lowStockProducts.length > 0 && (

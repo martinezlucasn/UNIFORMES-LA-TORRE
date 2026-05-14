@@ -1,8 +1,9 @@
 
-import { Product, Sale } from './types';
+import { Product, Sale, Expense } from './types';
 
 const PRODUCTS_KEY = 'torre_productos';
 const SALES_KEY = 'torre_ventas';
+const EXPENSES_KEY = 'torre_gastos';
 const RECEIPT_COUNTER_KEY = 'torre_boleta_counter';
 
 export const localDb = {
@@ -77,6 +78,32 @@ export const localDb = {
     return newSale;
   },
 
+  // --- Gastos ---
+  getExpenses: (): Expense[] => {
+    const data = localStorage.getItem(EXPENSES_KEY);
+    return data ? JSON.parse(data) : [];
+  },
+
+  saveExpenses: (expenses: Expense[]) => {
+    localStorage.setItem(EXPENSES_KEY, JSON.stringify(expenses));
+  },
+
+  addExpense: (expense: Omit<Expense, 'id'>) => {
+    const expenses = localDb.getExpenses();
+    const newExpense: Expense = {
+      ...expense,
+      id: Date.now().toString()
+    };
+    expenses.unshift(newExpense);
+    localDb.saveExpenses(expenses);
+    return newExpense;
+  },
+
+  deleteExpense: (id: string) => {
+    const expenses = localDb.getExpenses();
+    localDb.saveExpenses(expenses.filter(e => e.id !== id));
+  },
+
   // --- Utilidades de Stock ---
   updateStock: (productId: string, quantitySold: number) => {
     const products = localDb.getProducts();
@@ -92,8 +119,9 @@ export const localDb = {
     const data = {
       products: localDb.getProducts(),
       sales: localDb.getSales(),
+      expenses: localDb.getExpenses(),
       counter: localStorage.getItem(RECEIPT_COUNTER_KEY),
-      version: '1.0',
+      version: '1.1',
       exportedAt: new Date().toISOString()
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -110,6 +138,7 @@ export const localDb = {
       const data = JSON.parse(jsonData);
       if (data.products) localDb.saveProducts(data.products);
       if (data.sales) localDb.saveSales(data.sales);
+      if (data.expenses) localDb.saveExpenses(data.expenses);
       if (data.counter) localStorage.setItem(RECEIPT_COUNTER_KEY, data.counter);
       return true;
     } catch (e) {

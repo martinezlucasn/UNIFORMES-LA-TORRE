@@ -25,6 +25,7 @@ export interface Sale {
   id: string;
   receiptNumber: string;
   customerName?: string;
+  customerContact?: string;
   items: SaleItem[];
   subtotal: number;
   surcharge: number;
@@ -35,4 +36,11 @@ export interface Sale {
   createdAt: any;
 }
 
-export type ViewType = 'menu' | 'products' | 'sales' | 'history' | 'finances' | 'quotes' | 'settings';
+export interface Expense {
+  id: string;
+  name: string;
+  amount: number;
+  date: string; // ISO String
+}
+
+export type ViewType = 'menu' | 'products' | 'sales' | 'history' | 'finances' | 'quotes' | 'settings' | 'advances';

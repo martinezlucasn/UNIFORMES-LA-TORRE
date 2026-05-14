@@ -12,6 +12,7 @@ export default function SalesPoint() {
   const [isCardPayment, setIsCardPayment] = useState(false);
   const [generatePDF, setGeneratePDF] = useState(true);
   const [customerName, setCustomerName] = useState('');
+  const [customerContact, setCustomerContact] = useState('');
   const [deposit, setDeposit] = useState<number>(0);
   const [selectingSize, setSelectingSize] = useState<Product | null>(null);
 
@@ -122,6 +123,7 @@ export default function SalesPoint() {
     const saleData: Omit<Sale, 'id' | 'createdAt'> = {
       receiptNumber,
       customerName: customerName.trim() || undefined,
+      customerContact: customerContact.trim() || undefined,
       items: cart,
       subtotal,
       surcharge,
@@ -140,6 +142,7 @@ export default function SalesPoint() {
     alert('Venta realizada con éxito');
     setCart([]);
     setCustomerName('');
+    setCustomerContact('');
     setDeposit(0);
     setIsCardPayment(false);
     loadProducts(); // Fresh stock data
@@ -231,13 +234,22 @@ export default function SalesPoint() {
         <div className="space-y-4">
           <div>
             <label className="bold-label">Cliente</label>
-            <input
-              type="text"
-              placeholder="Nombre Opcional"
-              className="bold-input"
-              value={customerName}
-              onChange={e => setCustomerName(e.target.value)}
-            />
+            <div className="space-y-2">
+              <input
+                type="text"
+                placeholder="Nombre"
+                className="bold-input"
+                value={customerName}
+                onChange={e => setCustomerName(e.target.value)}
+              />
+              <input
+                type="text"
+                placeholder="Número de contacto"
+                className="bold-input"
+                value={customerContact}
+                onChange={e => setCustomerContact(e.target.value)}
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-3">
@@ -325,20 +337,20 @@ export default function SalesPoint() {
               <h2 className="text-3xl font-black uppercase italic tracking-tighter mb-2">{selectingSize.name}</h2>
               <p className="text-emerald-600 font-bold uppercase tracking-widest text-xs mb-8">Seleccione un talle para continuar</p>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-80 overflow-y-auto pr-2 custom-scrollbar p-1">
                 {selectingSize.variants?.map((v, i) => (
                   <button
                     key={i}
                     disabled={v.stock <= 0}
                     onClick={() => addToCart(selectingSize, v.size)}
-                    className={`p-6 border-4 border-slate-900 text-left transition-all ${
+                    className={`p-3 border-2 border-slate-900 text-left transition-all h-full flex flex-col justify-between ${
                       v.stock > 0 
-                        ? 'hover:bg-emerald-50 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] hover:shadow-[1px_1px_0px_0px_rgba(15,23,42,1)] hover:translate-x-1 hover:translate-y-1' 
+                        ? 'hover:bg-emerald-50 shadow-[2px_2px_0px_0px_rgba(15,23,42,1)] hover:shadow-[1px_1px_0px_0px_rgba(15,23,42,1)] hover:translate-x-0.5 hover:translate-y-0.5' 
                         : 'opacity-40 grayscale cursor-not-allowed'
                     }`}
                   >
-                    <span className="block font-black text-2xl italic leading-none">{v.size}</span>
-                    <span className="text-[10px] font-bold uppercase text-slate-500">Stock: {v.stock}</span>
+                    <span className="block font-black text-[13px] italic leading-tight mb-2 break-words">{v.size}</span>
+                    <span className="text-[8px] font-bold uppercase text-slate-500 mt-auto">STOCK: {v.stock}</span>
                   </button>
                 ))}
               </div>

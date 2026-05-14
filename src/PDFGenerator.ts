@@ -15,29 +15,14 @@ export const generateReceiptPDF = (sale: Sale) => {
   
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  // Header
-  doc.setFont('Helvetica', 'bold'); // Arial fallback in jsPDF
-  doc.setFontSize(16);
-  doc.setTextColor(5, 150, 105); // emerald-600
-  doc.text('Uniformes La Torre', pageWidth / 2, 12, { align: 'center' });
-  
-  doc.setFontSize(8);
-  doc.setTextColor(0, 0, 0);
-  doc.setFont('Helvetica', 'normal');
-  doc.text('Avenida 44 numero 1873, entre 132 y 133, La Plata', pageWidth / 2, 18, { align: 'center' });
-  
-  doc.setLineWidth(0.3);
-  doc.line(10, 22, pageWidth - 10, 22);
-  
-  // Non-valid info
+  // Right side info (Top Right)
   doc.setFontSize(7);
   doc.setFont('Helvetica', 'italic');
-  doc.text('No válido como factura comercial.', pageWidth / 2, 26, { align: 'center' });
-
-  // Sale Info
+  doc.text('No válido como factura comercial.', pageWidth - 10, 8, { align: 'right' });
+  
   doc.setFontSize(10);
   doc.setFont('Helvetica', 'bold');
-  doc.text(`Boleta Nro: ${sale.receiptNumber}`, 10, 32);
+  doc.text(`Boleta Nro: ${sale.receiptNumber}`, pageWidth - 10, 14, { align: 'right' });
   
   let dateObj: Date;
   if (typeof sale.createdAt === 'string') {
@@ -49,22 +34,43 @@ export const generateReceiptPDF = (sale: Sale) => {
   }
 
   doc.setFont('Helvetica', 'normal');
-  doc.text(`Fecha: ${format(dateObj, 'dd/MM/yyyy HH:mm')}`, pageWidth - 10, 32, { align: 'right' });
-  
+  doc.setFontSize(8);
+  doc.text(`Fecha: ${format(dateObj, 'dd/MM/yyyy HH:mm')}`, pageWidth - 10, 19, { align: 'right' });
+
   if (sale.customerName) {
-    doc.text(`Cliente: ${sale.customerName}`, 10, 38);
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text(`Cliente: ${sale.customerName}`, pageWidth - 10, 24, { align: 'right' });
   }
+
+  // Left side info
+  doc.setFontSize(16);
+  doc.setTextColor(5, 150, 105); // emerald-600
+  doc.setFont('Helvetica', 'bold');
+  doc.text('Uniformes La Torre', 10, 12);
+  
+  doc.setFontSize(8);
+  doc.setTextColor(0, 0, 0);
+  doc.setFont('Helvetica', 'normal');
+  doc.text('Av. 44 Nº 1873 e/ 132 y 133, La Plata', 10, 18);
+  doc.text('Whatsapp: (0221) 15-3090741', 10, 23);
+
+  doc.setLineWidth(0.3);
+  doc.line(10, 28, pageWidth - 10, 28);
+  
+  // Helper for localized currency (dots for thousands, no decimals)
+  const f = (n: number) => Math.round(n).toLocaleString('es-AR');
   
   // Table
   const tableData = sale.items.map(item => [
     item.size ? `${item.name} (${item.size})` : item.name,
     item.quantity.toString(),
-    `$${item.price.toFixed(2)}`,
-    `$${item.subtotal.toFixed(2)}`
+    `$${f(item.price)}`,
+    `$${f(item.subtotal)}`
   ]);
   
   autoTable(doc, {
-    startY: sale.customerName ? 44 : 38,
+    startY: 40,
     head: [['Producto', 'Cant.', 'Precio', 'Total']],
     body: tableData,
     theme: 'grid',
@@ -79,7 +85,7 @@ export const generateReceiptPDF = (sale: Sale) => {
   doc.setFontSize(9);
   
   if (sale.surcharge > 0) {
-    doc.text(`Recargo Tarjeta (10%): $${sale.surcharge.toFixed(2)}`, pageWidth - 10, finalY, { align: 'right' });
+    doc.text(`Recargo Tarjeta (10%): $${f(sale.surcharge)}`, pageWidth - 10, finalY, { align: 'right' });
   } else if (sale.paymentMethod === 'cash' || sale.paymentMethod === 'transfer') {
     doc.text('Descuento aplicado', pageWidth - 10, finalY, { align: 'right' });
   }
@@ -87,7 +93,13 @@ export const generateReceiptPDF = (sale: Sale) => {
   doc.setFontSize(12);
   doc.setFont('Helvetica', 'bold');
   const totalY = (sale.surcharge > 0 || sale.paymentMethod !== 'card') ? finalY + 8 : finalY;
-  doc.text(`TOTAL: $${sale.total.toFixed(2)}`, pageWidth - 10, totalY, { align: 'right' });
+  const totalText = `TOTAL: $${f(sale.total)}`;
+  const textWidth = doc.getTextWidth(totalText);
+  
+  // Draw box around total
+  doc.setLineWidth(0.5);
+  doc.rect(pageWidth - 10 - textWidth - 4, totalY - 7, textWidth + 8, 10);
+  doc.text(totalText, pageWidth - 14, totalY, { align: 'right' });
   
   doc.setFontSize(10);
   doc.setFont('Helvetica', 'italic');
@@ -97,11 +109,19 @@ export const generateReceiptPDF = (sale: Sale) => {
     
     doc.setFont('Helvetica', 'normal');
     doc.setFontSize(10);
-    doc.text(`SEÑA / PAGO: $${sale.deposit.toFixed(2)}`, pageWidth - 10, totalY + 14, { align: 'right' });
+    doc.text(`SEÑA / PAGO: $${f(sale.deposit)}`, pageWidth - 10, totalY + 14, { align: 'right' });
     doc.setFont('Helvetica', 'bold');
-    doc.text(`SALDO PENDIENTE: $${(sale.balanceDue || 0).toFixed(2)}`, pageWidth - 10, totalY + 20, { align: 'right' });
+    doc.text(`SALDO PENDIENTE: $${f(sale.balanceDue || 0)}`, pageWidth - 10, totalY + 20, { align: 'right' });
   } else {
     doc.text('¡Gracias por su compra!', pageWidth / 2, totalY + 8, { align: 'center' });
+  }
+
+  // Contact Info at bottom left
+  if (sale.customerContact) {
+    const bottomY = doc.internal.pageSize.getHeight() - 10;
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.text(`Nro contacto: ${sale.customerContact}`, 10, bottomY);
   }
   
   doc.save(`boleta_${sale.receiptNumber}.pdf`);
@@ -144,12 +164,15 @@ export const generateQuotePDF = (quoteItems: any[], customerName?: string) => {
     doc.text(`Para: ${customerName}`, 20, 55);
   }
   
+  // Helper for localized currency
+  const f = (n: number) => Math.round(n).toLocaleString('es-AR');
+
   // Table
   const tableData = quoteItems.map(item => [
     item.name,
     item.quantity.toString(),
-    `$${item.price.toFixed(2)}`,
-    `$${item.subtotal.toFixed(2)}`
+    `$${f(item.price)}`,
+    `$${f(item.subtotal)}`
   ]);
   
   autoTable(doc, {
@@ -174,14 +197,14 @@ export const generateQuotePDF = (quoteItems: any[], customerName?: string) => {
   // 1. Cash / Transfer
   doc.text('1. Efectivo o Transferencia:', 25, finalY + 10);
   doc.setFont('Helvetica', 'bold');
-  doc.text(`$${subtotal.toLocaleString()}`, pageWidth - 25, finalY + 10, { align: 'right' });
+  doc.text(`$${f(subtotal)}`, pageWidth - 25, finalY + 10, { align: 'right' });
   
-  // 2. Card 1 Payment (Assuming 10% surcharge as in sales or maybe flat? User didn't specify. I'll use +10% as it's standard for them)
+  // 2. Card 1 Payment
   const card1Total = subtotal * 1.10;
   doc.setFont('Helvetica', 'normal');
   doc.text('2. Tarjeta de Crédito (1 Pago - 10% recargo):', 25, finalY + 18);
   doc.setFont('Helvetica', 'bold');
-  doc.text(`$${card1Total.toLocaleString()}`, pageWidth - 25, finalY + 18, { align: 'right' });
+  doc.text(`$${f(card1Total)}`, pageWidth - 25, finalY + 18, { align: 'right' });
   
   // 3. 3 Installments (+34.66%)
   const total3 = subtotal * 1.3466;
@@ -189,10 +212,10 @@ export const generateQuotePDF = (quoteItems: any[], customerName?: string) => {
   doc.setFont('Helvetica', 'normal');
   doc.text('3. Tarjeta de Crédito (3 Cuotas - 34.66% recargo):', 25, finalY + 26);
   doc.setFont('Helvetica', 'bold');
-  doc.text(`3 cuotas de $${cuota3.toLocaleString()}`, pageWidth - 25, finalY + 26, { align: 'right' });
+  doc.text(`3 cuotas de $${f(cuota3)}`, pageWidth - 25, finalY + 26, { align: 'right' });
   doc.setFontSize(8);
   doc.setFont('Helvetica', 'italic');
-  doc.text(`Total en cuotas: $${total3.toLocaleString()}`, pageWidth - 25, finalY + 30, { align: 'right' });
+  doc.text(`Total en cuotas: $${f(total3)}`, pageWidth - 25, finalY + 30, { align: 'right' });
   
   // 4. 6 Installments (+51.71%)
   doc.setFontSize(10);
@@ -201,10 +224,10 @@ export const generateQuotePDF = (quoteItems: any[], customerName?: string) => {
   const cuota6 = total6 / 6;
   doc.text('4. Tarjeta de Crédito (6 Cuotas - 51.71% recargo):', 25, finalY + 38);
   doc.setFont('Helvetica', 'bold');
-  doc.text(`6 cuotas de $${cuota6.toLocaleString()}`, pageWidth - 25, finalY + 38, { align: 'right' });
+  doc.text(`6 cuotas de $${f(cuota6)}`, pageWidth - 25, finalY + 38, { align: 'right' });
   doc.setFontSize(8);
   doc.setFont('Helvetica', 'italic');
-  doc.text(`Total en cuotas: $${total6.toLocaleString()}`, pageWidth - 25, finalY + 42, { align: 'right' });
+  doc.text(`Total en cuotas: $${f(total6)}`, pageWidth - 25, finalY + 42, { align: 'right' });
   
   // Footer
   doc.setFontSize(9);
