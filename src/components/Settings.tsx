@@ -96,10 +96,11 @@ export default function Settings() {
         <div>
           <h3 className="font-black uppercase text-xs text-slate-600 mb-1">¿Cómo descargar la página completa?</h3>
           <p className="text-[10px] font-bold text-slate-500 uppercase leading-loose">
-            Para usar LT Gestión fuera de este entorno: Ve al menú de ajustes (icono de engranaje) de la plataforma AI Studio, 
-            selecciona <b>"Export to ZIP"</b>. Descarga el archivo, descomprímelo y abre el proyecto. 
-            Necesitarás Node.js instalado para correrlo por primera vez, o simplemente puedes construirlo 
-            y guardar la carpeta <b>dist</b>.
+            Para usar LT Gestión fuera de este entorno: <br/>
+            1. Ve al menú de ajustes (engranaje) de AI Studio y selecciona <b>"Export to ZIP"</b>.<br/>
+            2. Descomprime en tu PC e instala <a href="https://nodejs.org/" target="_blank" className="text-emerald-600 underline">Node.js</a>.<br/>
+            3. En una terminal en esa carpeta, ejecuta: <code className="bg-slate-200 px-1">npm install</code> y <code className="bg-slate-200 px-1">npm run build</code>.<br/>
+            4. La aplicación lista estará en la carpeta <b>dist</b>. Para verla correctamente, debes servirla con un servidor local (como la extensión "Live Server" de VS Code) o subirla a la web.
           </p>
         </div>
       </div>
