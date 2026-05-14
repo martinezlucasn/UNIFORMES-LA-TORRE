@@ -10,6 +10,9 @@
 }
 
 @layer base {
+  html {
+    font-size: 80%;
+  }
   body {
     @apply bg-emerald-50 text-slate-900 font-sans;
   }
@@ -29,4 +32,15 @@
 
 .bold-label {
   @apply block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
 }

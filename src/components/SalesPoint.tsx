@@ -13,6 +13,7 @@ export default function SalesPoint() {
   const [generatePDF, setGeneratePDF] = useState(true);
   const [customerName, setCustomerName] = useState('');
   const [deposit, setDeposit] = useState<number>(0);
+  const [selectingSize, setSelectingSize] = useState<Product | null>(null);
 
   useEffect(() => {
     loadProducts();
@@ -27,11 +28,19 @@ export default function SalesPoint() {
     p.details.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const addToCart = (product: Product) => {
-    const existing = cart.find(item => item.productId === product.id);
+  const addToCart = (product: Product, selectedSize?: string) => {
+    // If product has variants and no size is selected yet, open modal
+    if (product.hasVariants && !selectedSize) {
+      setSelectingSize(product);
+      return;
+    }
+
+    const cartId = selectedSize ? `${product.id}-${selectedSize}` : product.id;
+    const existing = cart.find(item => (item.size ? `${item.productId}-${item.size}` : item.productId) === cartId);
+    
     if (existing) {
       setCart(cart.map(item => 
-        item.productId === product.id 
+        (item.size ? `${item.productId}-${item.size}` : item.productId) === cartId 
           ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.price }
           : item
       ));
@@ -39,12 +48,14 @@ export default function SalesPoint() {
       setCart([...cart, {
         productId: product.id,
         name: product.name,
+        size: selectedSize,
         quantity: 1,
         price: product.sellingPrice,
         purchasePrice: product.purchasePrice,
         subtotal: product.sellingPrice
       }]);
     }
+    setSelectingSize(null);
   };
 
   const removeFromCart = (productId: string) => {
@@ -72,7 +83,15 @@ export default function SalesPoint() {
     // 1. Check/Update Stock and validate
     for (const item of cart) {
       const prod = products.find(p => p.id === item.productId);
-      if (!prod || prod.stock < item.quantity) {
+      if (!prod) continue;
+      
+      if (item.size) {
+        const variant = prod.variants?.find(v => v.size === item.size);
+        if (!variant || variant.stock < item.quantity) {
+          alert(`Stock insuficiente para ${item.name} (Talle ${item.size}).`);
+          return;
+        }
+      } else if (prod.stock < item.quantity) {
         alert(`Stock insuficiente para ${item.name}.`);
         return;
       }
@@ -80,7 +99,21 @@ export default function SalesPoint() {
 
     // 2. Perform updates
     for (const item of cart) {
-      localDb.updateStock(item.productId, item.quantity);
+      const prod = products.find(p => p.id === item.productId);
+      if (prod) {
+        if (item.size && prod.variants) {
+          const newVariants = prod.variants.map(v => 
+            v.size === item.size ? { ...v, stock: v.stock - item.quantity } : v
+          );
+          localDb.updateProduct(prod.id, { 
+            ...prod, 
+            variants: newVariants,
+            stock: prod.stock - item.quantity 
+          });
+        } else {
+          localDb.updateStock(item.productId, item.quantity);
+        }
+      }
     }
 
     // 3. Register Sale
@@ -116,11 +149,11 @@ export default function SalesPoint() {
     <div className="p-4 md:p-8 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-10">
       {/* Search & Selection */}
       <div className="lg:col-span-2 space-y-8">
-        <div className="bold-card p-6 flex items-center gap-4">
-          <div className="bg-emerald-900 p-2 text-white italic font-black">BUSCAR</div>
+        <div className="bold-card p-4 flex items-center gap-3">
+          <div className="bg-emerald-900 p-2 text-white italic font-black text-xs">BUSCAR</div>
           <input
             type="text"
-            className="w-full h-full outline-none text-3xl font-black uppercase tracking-tighter placeholder:text-slate-200"
+            className="w-full h-full outline-none text-2xl font-black uppercase tracking-tighter placeholder:text-slate-200"
             placeholder="Introduce nombre o detalle..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
@@ -152,9 +185,9 @@ export default function SalesPoint() {
       </div>
 
       {/* Cart & Checkout */}
-      <div className="bg-white p-8 border-t-12 border-black shadow-2xl h-fit sticky top-8 flex flex-col space-y-8">
+      <div className="bg-white p-6 border-t-[8px] border-black shadow-2xl h-fit sticky top-6 flex flex-col space-y-6">
         <div>
-          <h2 className="text-4xl font-black text-gray-900 uppercase italic tracking-tighter mb-2 flex items-center gap-3">
+          <h2 className="text-3xl font-black text-gray-900 uppercase italic tracking-tighter mb-2 flex items-center gap-3">
              RESUMEN
           </h2>
           <div className="w-16 h-2 bg-emerald-600"></div>
@@ -169,14 +202,15 @@ export default function SalesPoint() {
           <AnimatePresence>
             {cart.map(item => (
               <motion.div
-                key={item.productId}
+                key={item.productId + (item.size || '')}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 className="flex items-center justify-between border-b-2 border-slate-50 pb-4"
               >
                 <div className="flex-1 pr-4">
-                  <h4 className="font-black text-slate-900 uppercase tracking-tighter text-sm leading-tight mb-2">{item.name}</h4>
+                  <h4 className="font-black text-slate-900 uppercase tracking-tighter text-sm leading-tight mb-0">{item.name}</h4>
+                  {item.size && <p className="text-[10px] text-emerald-600 font-bold uppercase italic mb-2">Talle: {item.size}</p>}
                   <div className="flex items-center gap-2">
                     <button onClick={() => updateQuantity(item.productId, -1)} className="bg-slate-900 text-white w-8 h-8 flex items-center justify-center font-black hover:bg-emerald-600 transition-colors"> - </button>
                     <span className="font-black text-lg w-8 text-center">{item.quantity}</span>
@@ -278,6 +312,47 @@ export default function SalesPoint() {
           <Send size={28} /> FACTURAR
         </button>
       </div>
+
+      {/* Modal Selección de Talle */}
+      <AnimatePresence>
+        {selectingSize && (
+          <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="bg-white border-8 border-slate-900 p-8 max-w-lg w-full shadow-[20px_20px_0px_0px_rgba(0,0,0,1)]"
+            >
+              <h2 className="text-3xl font-black uppercase italic tracking-tighter mb-2">{selectingSize.name}</h2>
+              <p className="text-emerald-600 font-bold uppercase tracking-widest text-xs mb-8">Seleccione un talle para continuar</p>
+              
+              <div className="grid grid-cols-2 gap-4">
+                {selectingSize.variants?.map((v, i) => (
+                  <button
+                    key={i}
+                    disabled={v.stock <= 0}
+                    onClick={() => addToCart(selectingSize, v.size)}
+                    className={`p-6 border-4 border-slate-900 text-left transition-all ${
+                      v.stock > 0 
+                        ? 'hover:bg-emerald-50 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] hover:shadow-[1px_1px_0px_0px_rgba(15,23,42,1)] hover:translate-x-1 hover:translate-y-1' 
+                        : 'opacity-40 grayscale cursor-not-allowed'
+                    }`}
+                  >
+                    <span className="block font-black text-2xl italic leading-none">{v.size}</span>
+                    <span className="text-[10px] font-bold uppercase text-slate-500">Stock: {v.stock}</span>
+                  </button>
+                ))}
+              </div>
+
+              <button 
+                onClick={() => setSelectingSize(null)}
+                className="w-full mt-8 py-3 font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors"
+              >
+                Cancelar
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -66,10 +66,10 @@ export default function QuoteSystem() {
   );
 
   return (
-    <div className="p-8 max-w-7xl mx-auto h-full flex flex-col">
-      <div className="border-l-8 border-slate-900 pl-6 mb-8">
-        <h1 className="text-6xl font-black text-gray-900 uppercase tracking-tighter italic">Presupuestos</h1>
-        <p className="text-emerald-600 text-xl font-bold uppercase tracking-widest">Generador de Cotizaciones</p>
+    <div className="p-6 max-w-7xl mx-auto h-full flex flex-col">
+      <div className="border-l-[6px] border-slate-900 pl-5 mb-8">
+        <h1 className="text-4xl font-black text-gray-900 uppercase tracking-tighter italic">Presupuestos</h1>
+        <p className="text-emerald-600 text-lg font-bold uppercase tracking-widest">Generador de Cotizaciones</p>
       </div>
 
       <div className="flex-1 flex flex-col md:flex-row gap-8 overflow-hidden">

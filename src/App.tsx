@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
-import { ViewType } from './types';
+import React, { useState, useEffect } from 'react';
+import { ViewType, Product } from './types';
+import { localDb } from './localDb';
 import ProductManager from './components/ProductManager';
 import SalesPoint from './components/SalesPoint';
 import ReceiptHistory from './components/ReceiptHistory';
 import Finances from './components/Finances';
 import QuoteSystem from './components/QuoteSystem';
+import Settings from './components/Settings';
 import { 
   Menu, 
   Package, 
@@ -12,7 +14,9 @@ import {
   History, 
   Store,
   BarChart2,
-  FileText
+  FileText,
+  AlertTriangle,
+  Settings as SettingsIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -31,9 +35,9 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-emerald-50 flex flex-col md:flex-row border-8 border-emerald-900">
+    <div className="min-h-screen bg-emerald-50 flex flex-col md:flex-row border-[6px] border-emerald-900">
       {/* Sidebar Navigation */}
-      <nav className="bg-emerald-900 w-full md:w-64 flex flex-col p-6 h-screen md:sticky md:top-0 text-white shadow-2xl">
+      <nav className="bg-emerald-900 w-full md:w-56 flex flex-col p-5 h-screen md:sticky md:top-0 text-white shadow-2xl">
         <div className="flex items-center gap-3 mb-12">
           <div className="bg-white text-emerald-900 p-2 rounded font-black text-xl italic">
             LT
@@ -74,6 +78,12 @@ export default function App() {
             icon={<FileText size={20} />} 
             label="PRESUPUESTOS" 
           />
+          <NavItem 
+            active={currentView === 'settings'} 
+            onClick={() => handleNavigate('settings')} 
+            icon={<SettingsIcon size={20} />} 
+            label="CONFIGURACIÓN" 
+          />
           
           <div className="pt-4 mt-4 border-t border-emerald-800">
             <NavItem 
@@ -103,6 +113,7 @@ export default function App() {
               {currentView === 'history' && <ReceiptHistory />}
               {currentView === 'quotes' && <QuoteSystem />}
               {currentView === 'finances' && <Finances />}
+              {currentView === 'settings' && <Settings />}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -128,14 +139,28 @@ function NavItem({ active, onClick, icon, label }: { active: boolean, onClick: (
 }
 
 function MainView({ onNavigate }: { onNavigate: (v: ViewType) => void }) {
+  const [lowStockProducts, setLowStockProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    const products = localDb.getProducts();
+    // Consideramos stock bajo si el total es < 5 o si alguna variante es < 5
+    const low = products.filter(p => {
+      if (p.hasVariants && p.variants) {
+        return p.variants.some(v => v.stock < 5);
+      }
+      return p.stock < 5;
+    });
+    setLowStockProducts(low);
+  }, []);
+
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-      <div className="mb-12 border-l-8 border-emerald-900 pl-6">
+    <div className="p-8 max-w-6xl mx-auto">
+      <div className="mb-10 border-l-[6px] border-emerald-900 pl-5">
         <h1 className="text-6xl font-black text-gray-900 uppercase tracking-tighter italic">Panel de Control</h1>
         <p className="text-emerald-600 text-xl font-bold uppercase tracking-widest">Uniformes La Torre</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
         <MenuCard 
           onClick={() => onNavigate('products')}
           icon={<Package className="w-12 h-12" />}
@@ -164,24 +189,39 @@ function MainView({ onNavigate }: { onNavigate: (v: ViewType) => void }) {
           description="GENERAR COTIZACIONES"
           color="bg-slate-700"
         />
-        <MenuCard 
-          onClick={() => onNavigate('finances')}
-          icon={<BarChart2 className="w-12 h-12" />}
-          title="FINANZAS"
-          description="BALANCE MENSUAL"
-          color="bg-blue-900"
-        />
       </div>
 
-      <div className="mt-12 bg-white p-8 border-8 border-black flex flex-col md:flex-row items-center gap-8 shadow-2xl">
-        <div className="bg-emerald-900 p-6 rounded italic text-white flex items-center justify-center">
-          <Store size={48} />
-        </div>
-        <div>
-          <h3 className="text-3xl font-black text-gray-900 uppercase italic">Uniformes La Torre</h3>
-          <p className="text-slate-500 font-bold text-sm uppercase tracking-widest bg-slate-100 inline-block px-2 py-1 mt-2">Av. 44 Nº 1873 e/ 132 y 133, La Plata</p>
+      <div className="grid grid-cols-1 gap-8">
+        <div className="bg-white p-6 border-[6px] border-black flex flex-col md:flex-row items-center gap-6 shadow-2xl">
+          <div className="bg-emerald-900 p-6 rounded italic text-white flex items-center justify-center">
+            <Store size={48} />
+          </div>
+          <div>
+            <h3 className="text-3xl font-black text-gray-900 uppercase italic">Uniformes La Torre</h3>
+            <p className="text-slate-500 font-bold text-sm uppercase tracking-widest bg-slate-100 inline-block px-2 py-1 mt-2">Av. 44 Nº 1873 e/ 132 y 133, La Plata</p>
+          </div>
         </div>
       </div>
+
+      {/* Discreet Low Stock Footer */}
+      {lowStockProducts.length > 0 && (
+        <div className="mt-12 flex flex-wrap items-center gap-x-4 gap-y-2 py-2 border-t border-red-200">
+          <div className="flex items-center gap-2 shrink-0">
+            <AlertTriangle className="text-red-600 shrink-0" size={16} />
+            <span className="text-[10px] font-black uppercase text-red-600 tracking-tighter">Stock Crítico:</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {lowStockProducts.map(p => (
+              <span key={p.id} className="text-[10px] font-bold text-red-600/80 bg-red-50 px-2 py-0.5 border border-red-100 flex items-center gap-1">
+                {p.name} 
+                <span className="font-black text-red-700">
+                  [{p.hasVariants ? p.variants?.filter(v => v.stock < 5).map(v => `${v.size}:${v.stock}`).join(' | ') : p.stock}]
+                </span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -198,7 +238,7 @@ function MenuCard({ onClick, icon, title, description, color }: { onClick: () =>
         {icon}
       </div>
       <div className="relative z-10">
-        <h3 className="text-3xl font-black mb-1 leading-none uppercase italic tracking-tighter">{title}</h3>
+        <h3 className="text-2xl font-black mb-1 leading-none uppercase italic tracking-tighter">{title}</h3>
         <p className="text-white/50 text-xs font-black uppercase tracking-widest">{description}</p>
       </div>
     </motion.button>

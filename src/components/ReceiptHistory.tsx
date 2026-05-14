@@ -24,10 +24,10 @@ export default function ReceiptHistory() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto">
-      <div className="flex items-end gap-6 mb-12 border-b-8 border-emerald-900 pb-4">
-        <h2 className="text-5xl font-black text-gray-900 uppercase italic tracking-tighter">Historial</h2>
-        <p className="text-emerald-600 font-bold uppercase tracking-widest text-sm mb-1">Registro de Operaciones</p>
+    <div className="p-4 md:p-6 max-w-6xl mx-auto">
+      <div className="flex items-end gap-6 mb-10 border-b-[6px] border-emerald-900 pb-4">
+        <h2 className="text-4xl font-black text-gray-900 uppercase italic tracking-tighter">Historial</h2>
+        <p className="text-emerald-600 font-bold uppercase tracking-widest text-xs mb-1">Registro de Operaciones</p>
       </div>
 
       {/* Filtro de búsqueda */}
@@ -57,7 +57,7 @@ export default function ReceiptHistory() {
             
             <div className="flex justify-between items-start mb-6">
               <div>
-                <h3 className="text-4xl font-black text-gray-900 tracking-tighter font-sans italic">${sale.total.toFixed(0)}</h3>
+                <h3 className="text-3xl font-black text-gray-900 tracking-tighter font-sans italic">${sale.total.toFixed(0)}</h3>
                 <p className={`text-[10px] font-black uppercase tracking-widest mt-1 ${sale.paymentMethod === 'card' ? 'text-emerald-600' : 'text-blue-600'}`}>
                   PAGO {sale.paymentMethod}
                 </p>
@@ -91,7 +91,7 @@ export default function ReceiptHistory() {
               <div className="flex flex-wrap gap-2">
                 {sale.items.map((item, idx) => (
                   <span key={idx} className="text-[10px] bg-emerald-50 text-emerald-900 px-2 py-1 font-black uppercase tracking-tighter">
-                    {item.quantity}x {item.name}
+                    {item.quantity}x {item.name} {item.size ? `(${item.size})` : ''}
                   </span>
                 ))}
               </div>

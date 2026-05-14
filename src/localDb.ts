@@ -85,5 +85,36 @@ export const localDb = {
       products[index].stock -= quantitySold;
       localDb.saveProducts(products);
     }
+  },
+
+  // --- Backup & Restore ---
+  exportData: () => {
+    const data = {
+      products: localDb.getProducts(),
+      sales: localDb.getSales(),
+      counter: localStorage.getItem(RECEIPT_COUNTER_KEY),
+      version: '1.0',
+      exportedAt: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `backup_torre_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
+  importData: (jsonData: string) => {
+    try {
+      const data = JSON.parse(jsonData);
+      if (data.products) localDb.saveProducts(data.products);
+      if (data.sales) localDb.saveSales(data.sales);
+      if (data.counter) localStorage.setItem(RECEIPT_COUNTER_KEY, data.counter);
+      return true;
+    } catch (e) {
+      console.error('Error importing data:', e);
+      return false;
+    }
   }
 };

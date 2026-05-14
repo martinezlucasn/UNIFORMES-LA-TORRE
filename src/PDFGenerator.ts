@@ -57,7 +57,7 @@ export const generateReceiptPDF = (sale: Sale) => {
   
   // Table
   const tableData = sale.items.map(item => [
-    item.name,
+    item.size ? `${item.name} (${item.size})` : item.name,
     item.quantity.toString(),
     `$${item.price.toFixed(2)}`,
     `$${item.subtotal.toFixed(2)}`

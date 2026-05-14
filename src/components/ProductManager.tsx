@@ -9,6 +9,7 @@ export default function ProductManager() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<Partial<Product & { newStock?: number }> | null>(null);
+  const [variants, setVariants] = useState<{ size: string; stock: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,9 +24,11 @@ export default function ProductManager() {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentProduct?.name || currentProduct.purchasePrice === undefined || currentProduct.sellingPrice === undefined || currentProduct.stock === undefined) return;
+    if (!currentProduct?.name || currentProduct.purchasePrice === undefined || currentProduct.sellingPrice === undefined) return;
 
-    const finalStock = Number(currentProduct.stock) + (Number(currentProduct.newStock) || 0);
+    const finalStock = currentProduct.hasVariants 
+      ? variants.reduce((acc, v) => acc + v.stock, 0)
+      : (Number(currentProduct.stock) || 0) + (Number(currentProduct.newStock) || 0);
 
     const productData = {
       name: currentProduct.name,
@@ -33,6 +36,8 @@ export default function ProductManager() {
       sellingPrice: Number(currentProduct.sellingPrice),
       details: currentProduct.details || '',
       stock: finalStock,
+      hasVariants: currentProduct.hasVariants || false,
+      variants: currentProduct.hasVariants ? variants : undefined
     };
 
     if (currentProduct.id) {
@@ -48,6 +53,7 @@ export default function ProductManager() {
 
   const handleEdit = (product: Product) => {
     setCurrentProduct({ ...product, newStock: 0 });
+    setVariants(product.variants || []);
     setIsEditing(true);
   };
 
@@ -58,11 +64,25 @@ export default function ProductManager() {
     }
   };
 
+  const addVariant = () => {
+    setVariants([...variants, { size: '', stock: 0 }]);
+  };
+
+  const updateVariant = (index: number, field: 'size' | 'stock', value: string | number) => {
+    const newVariants = [...variants];
+    newVariants[index] = { ...newVariants[index], [field]: field === 'stock' ? Number(value) : value };
+    setVariants(newVariants);
+  };
+
+  const removeVariant = (index: number) => {
+    setVariants(variants.filter((_, i) => i !== index));
+  };
+
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto">
-      <div className="flex justify-between items-end mb-12 border-b-8 border-emerald-900 pb-4">
+    <div className="p-4 md:p-6 max-w-6xl mx-auto">
+      <div className="flex justify-between items-end mb-10 border-b-[6px] border-emerald-900 pb-4">
         <div>
-          <h2 className="text-5xl font-black text-gray-900 uppercase italic tracking-tighter">Inventario</h2>
+          <h2 className="text-4xl font-black text-gray-900 uppercase italic tracking-tighter">Inventario</h2>
           <p className="text-emerald-600 font-bold uppercase tracking-widest text-sm">Control de Stock y Precios</p>
         </div>
         {!isEditing && (
@@ -97,7 +117,7 @@ export default function ProductManager() {
             exit={{ opacity: 0, scale: 0.95 }}
             className="bold-card p-8 mb-12"
           >
-            <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="md:col-span-2">
                 <label className="bold-label">Nombre del Producto</label>
                 <input
@@ -131,33 +151,7 @@ export default function ProductManager() {
                   className="bold-input"
                 />
               </div>
-              <div>
-                <label className="bold-label">Stock Actual (un.)</label>
-                <input
-                  required
-                  disabled={currentProduct?.id !== undefined}
-                  type="number"
-                  value={currentProduct?.stock || ''}
-                  onChange={e => setCurrentProduct({ ...currentProduct, stock: Number(e.target.value) })}
-                  className={`bold-input ${currentProduct?.id ? 'bg-gray-100 italic cursor-not-allowed' : ''}`}
-                />
-              </div>
-              {currentProduct?.id && (
-                <div>
-                  <label className="bold-label text-emerald-600">Ingreso de Nuevo Stock (+)</label>
-                  <input
-                    type="number"
-                    value={currentProduct?.newStock || ''}
-                    onChange={e => setCurrentProduct({ ...currentProduct, newStock: Number(e.target.value) })}
-                    className="bold-input border-emerald-300 bg-emerald-50"
-                    placeholder="Escriba cantidad a sumar"
-                  />
-                  <p className="text-[10px] text-emerald-600 font-bold mt-1">
-                    Se sumará al stock actual al guardar. Total final: {(Number(currentProduct.stock) || 0) + (Number(currentProduct.newStock) || 0)}
-                  </p>
-                </div>
-              )}
-              <div>
+              <div className="md:col-span-2">
                 <label className="bold-label">Detalles / Especificaciones</label>
                 <input
                   type="text"
@@ -166,6 +160,88 @@ export default function ProductManager() {
                   className="bold-input"
                   placeholder="Material, talle, etc."
                 />
+              </div>
+
+              {/* Variantes / Talles */}
+              <div className="md:col-span-2 bg-emerald-50 p-6 border-4 border-emerald-900 shadow-[8px_8px_0px_0px_rgba(6,78,59,1)]">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="checkbox" 
+                      id="hasVariants"
+                      className="w-6 h-6 accent-emerald-900"
+                      checked={currentProduct?.hasVariants || false}
+                      onChange={e => setCurrentProduct({ ...currentProduct, hasVariants: e.target.checked })}
+                    />
+                    <label htmlFor="hasVariants" className="font-black uppercase italic text-emerald-900 cursor-pointer">¿Tiene Variedad de Talles?</label>
+                  </div>
+                  {currentProduct?.hasVariants && (
+                    <button 
+                      type="button"
+                      onClick={addVariant}
+                      className="bg-emerald-900 text-white p-2 flex items-center gap-2 font-black text-[10px] uppercase tracking-widest px-4"
+                    >
+                      <Plus size={14} /> AGREGAR TALLE
+                    </button>
+                  )}
+                </div>
+
+                {currentProduct?.hasVariants ? (
+                  <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                    {variants.map((v, i) => (
+                      <div key={i} className="flex gap-4 items-end bg-white p-3 border-2 border-emerald-900">
+                        <div className="flex-1">
+                          <label className="block text-[9px] font-black text-emerald-700 uppercase">Talle (Ej: M, 42, XL)</label>
+                          <input 
+                            type="text" 
+                            value={v.size}
+                            onChange={e => updateVariant(i, 'size', e.target.value)}
+                            className="w-full border-b font-black uppercase outline-none"
+                          />
+                        </div>
+                        <div className="w-24">
+                          <label className="block text-[9px] font-black text-emerald-700 uppercase">Stock</label>
+                          <input 
+                            type="number" 
+                            value={v.stock}
+                            onChange={e => updateVariant(i, 'stock', e.target.value)}
+                            className="w-full border-b font-black outline-none"
+                          />
+                        </div>
+                        <button type="button" onClick={() => removeVariant(i)} className="text-red-500 p-1 hover:bg-red-50">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                    {variants.length === 0 && <p className="text-center italic text-emerald-800/50 py-4 font-bold uppercase text-xs">Sin talles agregados</p>}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-6">
+                    <div>
+                      <label className="bold-label">Stock Actual (un.)</label>
+                      <input
+                        required
+                        disabled={currentProduct?.id !== undefined}
+                        type="number"
+                        value={currentProduct?.stock || ''}
+                        onChange={e => setCurrentProduct({ ...currentProduct, stock: Number(e.target.value) })}
+                        className={`bold-input ${currentProduct?.id ? 'bg-gray-100 italic cursor-not-allowed' : ''}`}
+                      />
+                    </div>
+                    {currentProduct?.id && (
+                      <div>
+                        <label className="bold-label text-emerald-600">Ingreso de Nuevo Stock (+)</label>
+                        <input
+                          type="number"
+                          value={currentProduct?.newStock || ''}
+                          onChange={e => setCurrentProduct({ ...currentProduct, newStock: Number(e.target.value) })}
+                          className="bold-input border-emerald-300 bg-emerald-50"
+                          placeholder="Escriba cantidad a sumar"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="md:col-span-2 flex justify-end gap-4 mt-6">
                 <button
@@ -215,7 +291,14 @@ export default function ProductManager() {
                 <tr key={product.id} className="hover:bg-emerald-50/50 transition-colors">
                   <td className="px-6 py-4">
                     <p className="text-gray-900 font-black text-lg uppercase tracking-tighter">{product.name}</p>
-                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">{product.details}</p>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {product.hasVariants && product.variants?.map((v, i) => (
+                        <span key={i} className="text-[9px] bg-slate-100 px-1.5 py-0.5 rounded font-black border border-slate-200 text-slate-500 uppercase">
+                          {v.size}: {v.stock}
+                        </span>
+                      ))}
+                      {!product.hasVariants && <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">{product.details}</p>}
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-center">
                     <span className={`inline-block px-3 py-1 font-black text-sm uppercase tracking-tighter ${product.stock < 5 ? 'bg-red-600 text-white' : 'bg-emerald-100 text-emerald-900'}`}>

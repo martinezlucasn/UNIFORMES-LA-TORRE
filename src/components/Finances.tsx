@@ -14,7 +14,7 @@ import {
 } from 'recharts';
 import { format, parseISO, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { TrendingUp, DollarSign, PieChart, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { TrendingUp, DollarSign, PieChart, ArrowUpRight, ArrowDownRight, ShoppingCart } from 'lucide-react';
 
 interface MonthlyData {
   month: string;
@@ -28,6 +28,7 @@ export default function Finances() {
   const [data, setData] = useState<MonthlyData[]>([]);
   const [totalProfit, setTotalProfit] = useState(0);
   const [totalRevenue, setTotalRevenue] = useState(0);
+  const [salesCount, setSalesCount] = useState(0);
 
   useEffect(() => {
     const sales = localDb.getSales();
@@ -39,6 +40,7 @@ export default function Finances() {
 
     let tProfit = 0;
     let tRevenue = 0;
+    setSalesCount(sales.length);
 
     sales.forEach(sale => {
       const date = parseISO(sale.createdAt);
@@ -57,20 +59,14 @@ export default function Finances() {
 
       const monthData = monthlyMap.get(monthKey)!;
       
-      // Revenue is the total subtotal (before surcharge/discounts, or maybe the actual total?)
-      // User says "precio de venta" vs "precio de compra". 
-      // Subtotal covers the selling prices. 
-      // Surcharges (card fee) usually cover processing costs, 
-      // but let's stick to the core subtotal for sales revenue vs purchase cost for profit calculation.
-      
       let saleRevenue = 0;
       let saleCost = 0;
 
       sale.items.forEach(item => {
         saleRevenue += item.subtotal;
-        // If purchasePrice is missing (older sales), use sellingPrice as fallback cost (0 profit) 
-        // or just 0. Better to assume 0 profit if data is missing.
-        saleCost += (item.purchasePrice || item.price) * item.quantity;
+        // Si no hay precio de compra (ventas viejas), asumimos margen 0 para no inventar ganancias
+        const unitCost = item.purchasePrice !== undefined ? item.purchasePrice : item.price;
+        saleCost += unitCost * item.quantity;
       });
 
       monthData.revenue += saleRevenue;
@@ -88,35 +84,41 @@ export default function Finances() {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-10">
-      <div className="border-l-8 border-slate-900 pl-6 mb-12">
-        <h1 className="text-6xl font-black text-gray-900 uppercase tracking-tighter italic">Finanzas</h1>
+    <div className="p-6 max-w-7xl mx-auto space-y-8">
+      <div className="border-l-[6px] border-slate-900 pl-5 mb-10">
+        <h1 className="text-4xl font-black text-gray-900 uppercase tracking-tighter italic">Finanzas</h1>
         <p className="text-emerald-600 text-xl font-bold uppercase tracking-widest">Balance de Ganancias</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         <StatCard 
-          title="Facturación Total (Ventas)" 
+          title="Facturación Bruta" 
           value={`$${totalRevenue.toLocaleString()}`} 
           icon={<DollarSign className="text-blue-600" />}
-          description="Bruto acumulado"
+          description="Suma de precios de venta"
         />
         <StatCard 
           title="Ganancia Neta" 
           value={`$${totalProfit.toLocaleString()}`} 
           icon={<TrendingUp className="text-emerald-600" />}
-          description="Diferencia Venta/Costo"
+          description="Venta menos costo"
           highlight
         />
         <StatCard 
-          title="Margen Promedio" 
-          value={totalRevenue > 0 ? `${((totalProfit / totalRevenue) * 100).toFixed(1)}%` : '0%'} 
+          title="Ticket Promedio" 
+          value={salesCount > 0 ? `$${(totalRevenue / salesCount).toFixed(0)}` : '$0'} 
           icon={<PieChart className="text-amber-600" />}
-          description="Rentabilidad del negocio"
+          description="Valor medio por venta"
+        />
+        <StatCard 
+          title="Ventas Totales" 
+          value={salesCount.toString()} 
+          icon={<ShoppingCart className="text-slate-600" />}
+          description="Operaciones realizadas"
         />
       </div>
 
-      <div className="bg-white border-8 border-black p-8 shadow-2xl">
+      <div className="bg-white border-[6px] border-black p-6 shadow-2xl">
         <div className="flex items-center justify-between mb-8">
           <h3 className="text-2xl font-black uppercase italic tracking-tighter">Evolución de Ganancias</h3>
           <div className="flex gap-4">
@@ -165,7 +167,7 @@ export default function Finances() {
         </div>
       </div>
 
-      <div className="bg-slate-900 text-white border-8 border-black p-8 shadow-2xl">
+      <div className="bg-slate-900 text-white border-[6px] border-black p-6 shadow-2xl">
         <h3 className="text-2xl font-black uppercase italic tracking-tighter mb-6">Detalle por Período</h3>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse">
