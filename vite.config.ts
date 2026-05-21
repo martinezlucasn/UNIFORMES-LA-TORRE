@@ -13,16 +13,40 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
+        injectRegister: 'inline',
+        includeAssets: ['icon.svg'],
         manifest: {
           name: 'Uniformes La Torre',
           short_name: 'La Torre',
-          description: 'Gestión de Uniformes La Torre',
+          description: 'Gestión Interna de Uniformes La Torre',
           theme_color: '#064e3b',
+          background_color: '#f0fdf4',
+          display: 'standalone',
           icons: [
             {
-              src: 'pwa-192x192.png',
+              src: 'icon.svg',
               sizes: '192x192',
-              type: 'image/png'
+              type: 'image/svg+xml',
+              purpose: 'any maskable'
+            }
+          ]
+        },
+        workbox: {
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+          runtimeCaching: [
+            {
+              urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'google-fonts-cache',
+                expiration: {
+                  maxEntries: 10,
+                  maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+                },
+                cacheableResponse: {
+                  statuses: [0, 200]
+                }
+              }
             }
           ]
         }

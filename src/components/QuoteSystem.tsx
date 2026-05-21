@@ -98,7 +98,7 @@ export default function QuoteSystem() {
                   <p className="text-[10px] text-slate-500 font-bold">{product.details}</p>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className="font-black text-xl italic">${product.sellingPrice}</span>
+                  <span className="font-black text-xl italic">${Math.round(product.sellingPrice).toLocaleString('es-AR')}</span>
                   <div className="bg-slate-900 text-white p-2">
                     <Plus size={16} />
                   </div>
@@ -131,7 +131,7 @@ export default function QuoteSystem() {
                       <span className="font-black text-sm w-4 text-center">{item.quantity}</span>
                       <button onClick={() => updateQuantity(item.productId, 1)} className="hover:text-emerald-400"><Plus size={14} /></button>
                     </div>
-                    <span className="font-black text-emerald-400 text-sm">${item.subtotal}</span>
+                    <span className="font-black text-emerald-400 text-sm">${Math.round(item.subtotal).toLocaleString('es-AR')}</span>
                   </div>
                 </div>
               ))}
@@ -157,7 +157,7 @@ export default function QuoteSystem() {
 
               <div className="flex justify-between items-end border-t border-slate-700 pt-4">
                 <span className="text-xs font-black uppercase tracking-widest text-emerald-400">Total Base</span>
-                <span className="text-4xl font-black text-white tracking-tighter italic leading-none">${subtotal}</span>
+                <span className="text-4xl font-black text-white tracking-tighter italic leading-none">${Math.round(subtotal).toLocaleString('es-AR')}</span>
               </div>
 
               <button 

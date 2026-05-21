@@ -18,7 +18,8 @@ import {
   FileText,
   AlertTriangle,
   Coins,
-  Settings as SettingsIcon
+  Wallet,
+  Settings as SettingsIcon,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -200,7 +201,8 @@ function MainView({ onNavigate }: { onNavigate: (v: ViewType) => void }) {
         />
       </div>
 
-
+      {/* Quick Daily Expense Section */}
+      <QuickExpenseWidget />
 
       {/* Discreet Low Stock Footer */}
       {lowStockProducts.length > 0 && (
@@ -221,6 +223,75 @@ function MainView({ onNavigate }: { onNavigate: (v: ViewType) => void }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function QuickExpenseWidget() {
+  const [name, setName] = useState('');
+  const [amount, setAmount] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || !amount) return;
+
+    setIsSaving(true);
+    localDb.addExpense({
+      name: name.toUpperCase(),
+      amount: parseFloat(amount),
+      date: new Date().toISOString()
+    });
+
+    setTimeout(() => {
+      setName('');
+      setAmount('');
+      setIsSaving(false);
+    }, 500);
+  };
+
+  return (
+    <div className="mt-12 pt-8 border-t-2 border-emerald-900/10">
+      <div className="flex items-center gap-2 mb-4">
+        <Wallet className="text-emerald-900" size={20} />
+        <h2 className="text-lg font-black uppercase italic tracking-tighter text-emerald-900">Registro de Gastos</h2>
+      </div>
+      
+      <form onSubmit={handleSubmit} className="bg-white border-4 border-emerald-900 p-4 shadow-[8px_8px_0px_0px_rgba(6,78,59,0.1)] flex flex-col md:flex-row gap-4">
+        <div className="flex-1">
+          <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Concepto / Nombre</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="EJ: ART. LIMPIEZA, ENCENDEDOR, AGUA..."
+            className="w-full bg-slate-50 border-2 border-slate-200 p-2 font-bold uppercase text-sm focus:border-emerald-600 outline-none transition-all"
+          />
+        </div>
+        <div className="md:w-48">
+          <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Monto ($)</label>
+          <input
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="0.00"
+            className="w-full bg-slate-50 border-2 border-slate-200 p-2 font-bold text-sm focus:border-emerald-600 outline-none transition-all"
+          />
+        </div>
+        <div className="flex items-end">
+          <button
+            type="submit"
+            disabled={isSaving || !name || !amount}
+            className={`w-full md:w-auto px-8 py-2 font-black uppercase text-sm transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-1 active:translate-y-1 ${
+              isSaving 
+                ? 'bg-slate-200 text-slate-400 cursor-not-allowed' 
+                : 'bg-emerald-600 text-white hover:bg-emerald-700'
+            }`}
+          >
+            {isSaving ? 'Guardando...' : 'Registrar Gasto'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

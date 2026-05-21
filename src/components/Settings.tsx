@@ -69,24 +69,32 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Offline Card */}
+        {/* Shortcut & Offline Card */}
         <div className="bg-emerald-900 text-white p-8 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
           <div className="flex items-center gap-3 mb-6">
             <ShieldCheck className="text-emerald-400" size={32} />
-            <h2 className="text-2xl font-black uppercase italic tracking-tighter">Uso Sin Conexión</h2>
+            <h2 className="text-2xl font-black uppercase italic tracking-tighter">Acceso Directo</h2>
           </div>
           <p className="text-xs text-emerald-100/60 font-bold uppercase mb-8 leading-relaxed">
-            Esta aplicación está preparada para funcionar offline (PWA). Una vez instalada o abierta,
-            seguirá funcionando aunque no tengas internet.
+            Puedes instalar esta aplicación en tu computadora para usarla como un programa normal, incluso sin internet.
           </p>
 
-          <div className="space-y-2 border-t border-emerald-800 pt-6">
-            <h4 className="font-black uppercase text-[10px] tracking-widest text-emerald-400">Instrucciones Offline:</h4>
-            <ul className="text-[10px] font-bold uppercase space-y-2 text-emerald-50">
-              <li className="flex gap-2"><span>1.</span> Abre la app desde tu PC descargada.</li>
-              <li className="flex gap-2"><span>2.</span> Usa el botón "Instalar" en la barra de direcciones de Chrome/Edge si aparece.</li>
-              <li className="flex gap-2"><span>3.</span> Los datos se mantienen persistentes localmente.</li>
-            </ul>
+          <div className="space-y-4 border-t border-emerald-800 pt-6">
+            <h4 className="font-black uppercase text-[10px] tracking-widest text-emerald-400">Cómo crear el acceso directo:</h4>
+            <div className="bg-emerald-950 p-4 border-2 border-emerald-800 space-y-4">
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-white px-2 py-0.5 bg-emerald-800 inline-block">MÉTODO 1: INSTALACIÓN PWA (RECOMENDADO)</p>
+                <p className="text-[10px] font-medium leading-relaxed text-emerald-100">
+                  En Google Chrome o Microsoft Edge, busca el ícono de <b>"Instalar"</b> (una computadora con una flecha) en la barra de direcciones (arriba a la derecha). Esto creará un ícono en tu escritorio.
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-white px-2 py-0.5 bg-slate-800 inline-block">MÉTODO 2: MARCADOR DE ESCRITORIO</p>
+                <p className="text-[10px] font-medium leading-relaxed text-emerald-100">
+                  Arrastra el candado (o ícono de info) que está a la izquierda de la URL directamente a tu escritorio.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

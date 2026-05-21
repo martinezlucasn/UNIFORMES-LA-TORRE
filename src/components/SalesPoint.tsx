@@ -169,16 +169,56 @@ export default function SalesPoint() {
               key={product.id}
               whileHover={{ scale: 1.05, rotate: 1 }}
               whileTap={{ scale: 0.95 }}
-              className="bg-white p-6 shadow-xl border-4 border-slate-900 cursor-pointer flex flex-col justify-between"
+              className={`relative shadow-xl border-4 border-slate-900 cursor-pointer flex flex-col justify-between min-h-[290px] overflow-hidden p-6 ${
+                product.image ? 'text-white' : 'bg-white text-slate-900'
+              }`}
               onClick={() => addToCart(product)}
             >
-              <div className="mb-4">
-                <span className="text-[10px] font-black uppercase text-emerald-600 tracking-widest">{product.details}</span>
-                <h3 className="font-black text-2xl text-gray-900 uppercase italic tracking-tighter leading-none mt-1">{product.name}</h3>
+              {/* Full background image option occupies 100% of the rectangle */}
+              {product.image ? (
+                <>
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="absolute inset-0 w-full h-full object-cover z-0"
+                    referrerPolicy="no-referrer"
+                  />
+                  {/* Subtle dark gradient overlay to ensure all texts/elements on top read perfectly */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 to-black/80 z-0" />
+                </>
+              ) : null}
+
+              <div className="z-10 flex-grow flex flex-col justify-between">
+                <div>
+                  <span className={`text-[10px] font-black uppercase tracking-widest ${
+                    product.image ? 'text-emerald-400 drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]' : 'text-emerald-600'
+                  }`}>{product.details}</span>
+                  <h3 className={`font-black text-2xl uppercase italic tracking-tighter leading-none mt-1 ${
+                    product.image ? 'text-white drop-shadow-[0_2px_2px_rgba(0,0,0,0.9)]' : 'text-gray-900'
+                  }`}>{product.name}</h3>
+                </div>
+                {!product.image && (
+                  <div className="w-full h-32 mt-2 border-4 border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center text-slate-300 flex-shrink-0">
+                    <svg className="w-10 h-10" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375 0 11-.75 0 .375 0 01.75 0z" />
+                    </svg>
+                    <span className="text-[8px] font-black uppercase tracking-widest mt-1">Sin Imagen</span>
+                  </div>
+                )}
               </div>
-              <div className="flex justify-between items-end border-t-2 border-slate-50 pt-4">
-                <p className="text-3xl font-black text-slate-800">${product.sellingPrice.toFixed(0)}</p>
-                <span className={`text-[11px] font-black px-2 py-1 uppercase tracking-tighter ${product.stock < 5 ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
+              <div className={`z-10 flex justify-between items-end border-t-2 pt-4 mt-auto ${
+                product.image ? 'border-white/20' : 'border-slate-100'
+              }`}>
+                <p className={`text-3xl font-black italic tracking-tighter ${
+                  product.image ? 'text-emerald-300 drop-shadow-[0_2px_2px_rgba(0,0,0,0.9)]' : 'text-slate-800'
+                }`}>${Math.round(product.sellingPrice).toLocaleString('es-AR')}</p>
+                <span className={`text-[11px] font-black px-2 py-1 uppercase tracking-tighter ${
+                  product.stock < 5 
+                    ? 'bg-red-600 text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' 
+                    : product.image 
+                      ? 'bg-white/20 text-slate-100 border border-white/30 backdrop-blur-xs' 
+                      : 'bg-slate-100 text-slate-500'
+                }`}>
                   STOCK: {product.stock}
                 </span>
               </div>
@@ -221,7 +261,7 @@ export default function SalesPoint() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-black text-xl text-slate-900 italic tracking-tighter">${item.subtotal.toFixed(0)}</p>
+                  <p className="font-black text-xl text-slate-900 italic tracking-tighter">${Math.round(item.subtotal).toLocaleString('es-AR')}</p>
                   <button onClick={() => removeFromCart(item.productId)} className="text-red-500 font-black uppercase text-[10px] italic mt-2 border-b border-red-500 hover:text-red-700">
                     Quitar
                   </button>
@@ -282,12 +322,12 @@ export default function SalesPoint() {
         <div className="bg-slate-50 p-6 border-l-8 border-black space-y-3">
           <div className="flex justify-between text-slate-500 font-bold uppercase text-[10px] tracking-widest">
             <span>Subtotal Bruto:</span>
-            <span>${subtotal.toFixed(2)}</span>
+            <span>${Math.round(subtotal).toLocaleString('es-AR')}</span>
           </div>
           {isCardPayment ? (
             <div className="flex justify-between text-emerald-600 font-black uppercase text-[10px] italic tracking-widest">
               <span>Recargo Financiero:</span>
-              <span>+${surcharge.toFixed(2)}</span>
+              <span>+${Math.round(surcharge).toLocaleString('es-AR')}</span>
             </div>
           ) : (
             <div className="flex justify-between text-blue-600 font-black uppercase text-[10px] italic tracking-widest">
@@ -303,16 +343,16 @@ export default function SalesPoint() {
               value={deposit || ''}
               onChange={(e) => setDeposit(Number(e.target.value))}
               className="w-full bg-transparent border-b-2 border-emerald-900 text-xl font-black outline-none"
-              placeholder="0.00"
+              placeholder="0"
             />
             {deposit > 0 && (
-              <p className="text-[10px] text-emerald-700 font-bold mt-1 uppercase">Saldo pendiente: ${(total - (deposit || 0)).toFixed(2)}</p>
+              <p className="text-[10px] text-emerald-700 font-bold mt-1 uppercase">Saldo pendiente: ${Math.round(total - (deposit || 0)).toLocaleString('es-AR')}</p>
             )}
           </div>
 
           <div className="flex justify-between items-end pt-2">
             <span className="text-xs font-black uppercase tracking-widest text-slate-900">Total a Pagar</span>
-            <span className="text-4xl font-black text-gray-900 tracking-tighter italic leading-none">${total.toFixed(0)}</span>
+            <span className="text-4xl font-black text-gray-900 tracking-tighter italic leading-none">${Math.round(total).toLocaleString('es-AR')}</span>
           </div>
         </div>
 
@@ -343,14 +383,26 @@ export default function SalesPoint() {
                     key={i}
                     disabled={v.stock <= 0}
                     onClick={() => addToCart(selectingSize, v.size)}
-                    className={`p-3 border-2 border-slate-900 text-left transition-all h-full flex flex-col justify-between ${
+                    className={`aspect-square w-full p-2 border-2 border-slate-900 text-left transition-all flex flex-col justify-between gap-1 overflow-hidden ${
                       v.stock > 0 
                         ? 'hover:bg-emerald-50 shadow-[2px_2px_0px_0px_rgba(15,23,42,1)] hover:shadow-[1px_1px_0px_0px_rgba(15,23,42,1)] hover:translate-x-0.5 hover:translate-y-0.5' 
                         : 'opacity-40 grayscale cursor-not-allowed'
                     }`}
                   >
-                    <span className="block font-black text-[13px] italic leading-tight mb-2 break-words">{v.size}</span>
-                    <span className="text-[8px] font-bold uppercase text-slate-500 mt-auto">STOCK: {v.stock}</span>
+                    {/* Size variant local image preview if set */}
+                    {v.image ? (
+                      <div className="w-full h-12 sm:h-14 border border-slate-900 overflow-hidden bg-slate-50 flex-shrink-0">
+                        <img src={v.image} alt={v.size} className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="w-full h-12 sm:h-14 border border-dashed border-slate-200 flex items-center justify-center text-slate-200 flex-shrink-0">
+                        <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375 0 11-.75 0 .375 0 01.75 0z" />
+                        </svg>
+                      </div>
+                    )}
+                    <span className="block font-black text-xs sm:text-[13px] italic leading-none break-words">{v.size}</span>
+                    <span className="text-[7px] sm:text-[8px] font-bold uppercase text-slate-500 mt-auto leading-none">STOCK: {v.stock}</span>
                   </button>
                 ))}
               </div>

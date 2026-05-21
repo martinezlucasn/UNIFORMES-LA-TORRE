@@ -234,20 +234,20 @@ export default function Finances() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         <StatCard 
           title="Facturación Bruta" 
-          value={`$${totalRevenue.toLocaleString()}`} 
+          value={`$${Math.round(totalRevenue).toLocaleString('es-AR')}`} 
           icon={<DollarSign className="text-blue-600" />}
           description="Suma de ventas"
         />
         <StatCard 
           title="Ganancia Neta Final" 
-          value={`$${totalProfit.toLocaleString()}`} 
+          value={`$${Math.round(totalProfit).toLocaleString('es-AR')}`} 
           icon={<TrendingUp className="text-emerald-600" />}
           description="Revenue - Costos - Gastos Ops"
           highlight
         />
         <StatCard 
           title="Gastos Operativos" 
-          value={`$${expenses.reduce((acc, curr) => acc + curr.amount, 0).toLocaleString()}`} 
+          value={`$${Math.round(expenses.reduce((acc, curr) => acc + curr.amount, 0)).toLocaleString('es-AR')}`} 
           icon={<MinusCircle className="text-red-600" />}
           description="Sueldos, servicios, etc"
         />
@@ -381,7 +381,7 @@ export default function Finances() {
               <div className="space-y-2">
                 <div className="flex justify-between items-center bg-emerald-50 p-2 border-l-4 border-emerald-600">
                   <span className="text-[10px] font-black uppercase text-emerald-700">Resumen Personal</span>
-                  <span className="text-xs font-black text-emerald-900">${staffTotal.toLocaleString()}</span>
+                  <span className="text-xs font-black text-emerald-900">${Math.round(staffTotal).toLocaleString('es-AR')}</span>
                 </div>
 
                 <div className="grid grid-cols-1 gap-3 mb-4">
@@ -390,7 +390,6 @@ export default function Finances() {
                       
                       <div className="flex justify-between items-center mb-3">
                         <span className="text-[11px] font-black uppercase text-slate-900">{s.name}</span>
-                        <span className="text-[10px] font-bold text-slate-400 italic">Acumulado: ${s.totalOverall.toLocaleString()}</span>
                       </div>
 
                       <div className="space-y-2">
@@ -398,11 +397,10 @@ export default function Finances() {
                           <span className="text-[9px] font-bold text-slate-500 uppercase">{s.isFirstFortnight ? '1ª Quincena' : '2ª Quincena'} (Actual)</span>
                           <div className="text-right">
                             <span className={`text-xs font-black ${s.available && s.available < 0 ? 'text-red-600' : 'text-blue-600'}`}>
-                              {s.available !== null ? `$${s.available.toLocaleString()} disponible` : 'Sin sueldo fijo'}
+                              {s.available !== null ? `$${Math.round(s.available).toLocaleString('es-AR')} disponible` : 'Sin sueldo fijo'}
                             </span>
                           </div>
                         </div>
-
                       </div>
                     </div>
                   ))}
@@ -455,10 +453,10 @@ export default function Finances() {
               {data.map((row) => (
                 <tr key={row.month} className="border-b border-slate-800 hover:bg-slate-800 transition-colors">
                   <td className="py-4 font-black uppercase italic text-sm">{row.monthName}</td>
-                  <td className="py-4 text-right font-bold text-slate-300">${row.revenue.toLocaleString()}</td>
-                  <td className="py-4 text-right font-bold text-slate-300">${row.productCost.toLocaleString()}</td>
-                  <td className="py-4 text-right font-bold text-red-400">-${row.opExpenses.toLocaleString()}</td>
-                  <td className="py-4 text-right font-black text-emerald-400 text-lg">${row.profit.toLocaleString()}</td>
+                  <td className="py-4 text-right font-bold text-slate-300">${Math.round(row.revenue).toLocaleString('es-AR')}</td>
+                  <td className="py-4 text-right font-bold text-slate-300">${Math.round(row.productCost).toLocaleString('es-AR')}</td>
+                  <td className="py-4 text-right font-bold text-red-400">-${Math.round(row.opExpenses).toLocaleString('es-AR')}</td>
+                  <td className="py-4 text-right font-black text-emerald-400 text-lg">${Math.round(row.profit).toLocaleString('es-AR')}</td>
                   <td className="py-4 text-right font-black text-emerald-600">
                     <span className="bg-emerald-400/10 px-2 py-1 flex items-center justify-end gap-1 ml-auto w-fit">
                       {row.revenue > 0 ? ((row.profit / row.revenue) * 100).toFixed(0) : '0'}%
@@ -484,7 +482,7 @@ const ExpenseItem: React.FC<{ exp: Expense, onDelete: (id: string) => void }> = 
           <p className="text-[10px] font-bold text-slate-400">{format(parseISO(exp.date), 'dd/MM/yyyy')}</p>
         </div>
         <div className="text-right">
-          <p className="font-black text-red-600">-${exp.amount.toLocaleString()}</p>
+          <p className="font-black text-red-600">-${Math.round(exp.amount).toLocaleString('es-AR')}</p>
           <button 
             onClick={() => onDelete(exp.id)}
             className="text-slate-300 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"

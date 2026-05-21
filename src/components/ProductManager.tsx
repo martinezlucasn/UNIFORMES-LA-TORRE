@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { localDb } from '../localDb';
 import { Product } from '../types';
-import { Plus, Edit2, Trash2, X, Save } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Save, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { compressImage } from '../utils/image';
 
 export default function ProductManager() {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<Partial<Product & { newStock?: number }> | null>(null);
-  const [variants, setVariants] = useState<{ size: string; stock: number }[]>([]);
+  const [variants, setVariants] = useState<{ size: string; stock: number; image?: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,7 +38,8 @@ export default function ProductManager() {
       details: currentProduct.details || '',
       stock: finalStock,
       hasVariants: currentProduct.hasVariants || false,
-      variants: currentProduct.hasVariants ? variants : undefined
+      variants: currentProduct.hasVariants ? variants : undefined,
+      image: currentProduct.image
     };
 
     if (currentProduct.id) {
@@ -126,7 +128,7 @@ export default function ProductManager() {
                   value={currentProduct?.name || ''}
                   onChange={e => setCurrentProduct({ ...currentProduct, name: e.target.value })}
                   className="bold-input text-2xl h-14"
-                  placeholder="Ej: CHOMBA ESCOLAR AZUL"
+                  placeholder="Ej: Chomba SPB"
                 />
               </div>
               <div>
@@ -150,6 +152,58 @@ export default function ProductManager() {
                   onChange={e => setCurrentProduct({ ...currentProduct, sellingPrice: Number(e.target.value) })}
                   className="bold-input"
                 />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="bold-label">Imagen del Producto (Opcional)</label>
+                <div className="flex flex-col sm:flex-row items-center gap-4 p-4 border-4 border-slate-900 bg-slate-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                  {currentProduct?.image ? (
+                    <div className="relative w-28 h-28 border-4 border-slate-900 bg-white flex-shrink-0">
+                      <img src={currentProduct.image} alt="Preview" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setCurrentProduct({ ...currentProduct, image: undefined })}
+                        className="absolute -top-3 -right-3 bg-red-600 text-white rounded-full p-1 border-2 border-slate-900 shadow-md flex items-center justify-center w-7 h-7 hover:bg-red-700 font-bold"
+                        title="Eliminar imagen"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-28 h-28 border-4 border-dashed border-slate-300 bg-white flex flex-col items-center justify-center text-slate-400 flex-shrink-0">
+                      <ImageIcon size={32} />
+                      <span className="text-[10px] font-black uppercase mt-1 tracking-widest">Sin Imagen</span>
+                    </div>
+                  )}
+                  <div className="flex-1 flex flex-col gap-2 w-full">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      id="main-product-image"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          try {
+                            const base64 = await compressImage(file);
+                            setCurrentProduct({ ...currentProduct, image: base64 });
+                          } catch (err) {
+                            console.error("Error cargando la imagen:", err);
+                          }
+                        }
+                      }}
+                    />
+                    <label
+                      htmlFor="main-product-image"
+                      className="bg-slate-900 hover:bg-slate-800 text-white py-2 px-4 text-xs font-black uppercase tracking-widest text-center cursor-pointer border-2 border-black inline-block sm:max-w-xs shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+                    >
+                      {currentProduct?.image ? 'Cambiar Imagen' : 'Subir Imagen Local'}
+                    </label>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                      Soporta JPG, JPEG, PNG. Imagen guardada de forma segura localmente.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Variantes / Talles */}
@@ -181,6 +235,50 @@ export default function ProductManager() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {variants.map((v, i) => (
                         <div key={i} className="flex gap-2 items-center bg-white p-2 border border-emerald-900/30 shadow-[2px_2px_0px_0px_rgba(6,78,59,0.1)]">
+                          {/* Thumbnail / Upload for Variant Size */}
+                          <div className="relative w-12 h-12 border border-slate-300 bg-slate-50 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                            {v.image ? (
+                              <div className="relative w-full h-full">
+                                <img src={v.image} alt="Talle Ref" className="w-full h-full object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newVariants = [...variants];
+                                    newVariants[i] = { ...newVariants[i], image: undefined };
+                                    setVariants(newVariants);
+                                  }}
+                                  className="absolute top-0 right-0 bg-red-600 text-white rounded-full p-0.5 border border-black shadow flex items-center justify-center w-4 h-4 hover:bg-red-700 pointer-events-auto"
+                                  title="Quitar"
+                                >
+                                  <X size={10} />
+                                </button>
+                              </div>
+                            ) : (
+                              <label className="cursor-pointer flex flex-col items-center justify-center w-full h-full text-slate-400 hover:text-slate-600" title="Subir imagen de talle">
+                                <ImageIcon size={18} />
+                                <span className="text-[6px] font-black uppercase mt-0.5">FOTO</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      try {
+                                        const base64 = await compressImage(file, 200); // lighter 200px size for size variants
+                                        const newVariants = [...variants];
+                                        newVariants[i] = { ...newVariants[i], image: base64 };
+                                        setVariants(newVariants);
+                                      } catch (err) {
+                                        console.error("Error cargando imagen de talle:", err);
+                                      }
+                                    }
+                                  }}
+                                />
+                              </label>
+                            )}
+                          </div>
+
                           <div className="flex-1">
                             <label className="block text-[8px] font-black text-emerald-700 uppercase leading-none mb-1">Talle</label>
                             <input 
@@ -203,7 +301,7 @@ export default function ProductManager() {
                           <button 
                             type="button" 
                             onClick={() => removeVariant(i)} 
-                            className="text-red-400 hover:text-red-600 p-1 mt-3"
+                            className="text-red-400 hover:text-red-600 p-1 mt-3 flex-shrink-0"
                             title="Eliminar talle"
                           >
                             <Trash2 size={12} />
@@ -289,13 +387,35 @@ export default function ProductManager() {
               ).map(product => (
                 <tr key={product.id} className="hover:bg-emerald-50/50 transition-colors">
                   <td className="px-6 py-4">
-                    <p className="text-gray-900 font-black text-lg uppercase tracking-tighter">{product.name}</p>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {product.hasVariants && product.variants?.map((v, i) => (
-                        <span key={i} className="text-[9px] bg-slate-100 px-1.5 py-0.5 rounded font-black border border-slate-200 text-slate-500 uppercase">
-                          {v.size}: {v.stock}
-                        </span>
-                      ))}
+                    <div className="flex items-center gap-3">
+                      {product.image ? (
+                        <img 
+                          src={product.image} 
+                          alt={product.name} 
+                          className="w-12 h-12 object-cover border-2 border-slate-900 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex-shrink-0 bg-white" 
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-slate-50 border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 flex-shrink-0">
+                          <ImageIcon size={18} />
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-gray-900 font-black text-lg uppercase tracking-tighter">{product.name}</p>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {product.hasVariants && product.variants?.map((v, i) => (
+                            <span key={i} className="text-[9px] bg-slate-100 px-1.5 py-0.5 rounded font-black border border-slate-200 text-slate-500 uppercase flex items-center gap-1">
+                              {v.image && (
+                                <img 
+                                  src={v.image} 
+                                  alt="" 
+                                  className="w-3.5 h-3.5 object-cover rounded-sm border border-slate-900" 
+                                />
+                              )}
+                              {v.size}: {v.stock}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-center">
@@ -303,9 +423,9 @@ export default function ProductManager() {
                       {product.stock} UN.
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right font-medium text-slate-400 italic">${product.purchasePrice.toFixed(2)}</td>
+                  <td className="px-6 py-4 text-right font-medium text-slate-400 italic">${Math.round(product.purchasePrice).toLocaleString('es-AR')}</td>
                   <td className="px-6 py-4 text-right">
-                    <span className="text-2xl font-black text-emerald-900 tracking-tighter font-sans">${product.sellingPrice.toFixed(2)}</span>
+                    <span className="text-2xl font-black text-emerald-900 tracking-tighter font-sans">${Math.round(product.sellingPrice).toLocaleString('es-AR')}</span>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex justify-center gap-4">

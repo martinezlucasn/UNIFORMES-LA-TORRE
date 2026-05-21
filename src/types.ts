@@ -6,7 +6,8 @@ export interface Product {
   details: string;
   stock: number;
   hasVariants?: boolean;
-  variants?: { size: string; stock: number }[];
+  variants?: { size: string; stock: number; image?: string }[];
+  image?: string;
   createdAt: any;
   updatedAt: any;
 }

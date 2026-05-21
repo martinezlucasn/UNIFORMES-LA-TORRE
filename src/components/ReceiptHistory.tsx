@@ -57,7 +57,7 @@ export default function ReceiptHistory() {
             
             <div className="flex justify-between items-start mb-6">
               <div>
-                <h3 className="text-3xl font-black text-gray-900 tracking-tighter font-sans italic">${sale.total.toFixed(0)}</h3>
+                <h3 className="text-3xl font-black text-gray-900 tracking-tighter font-sans italic">${Math.round(sale.total).toLocaleString('es-AR')}</h3>
                 <p className={`text-[10px] font-black uppercase tracking-widest mt-1 ${sale.paymentMethod === 'card' ? 'text-emerald-600' : 'text-blue-600'}`}>
                   PAGO {sale.paymentMethod}
                 </p>
