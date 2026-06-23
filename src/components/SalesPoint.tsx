@@ -372,37 +372,49 @@ export default function SalesPoint() {
             <motion.div 
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
-              className="bg-white border-8 border-slate-900 p-8 max-w-lg w-full shadow-[20px_20px_0px_0px_rgba(0,0,0,1)]"
+              className="bg-white border-8 border-slate-900 p-10 max-w-5xl w-full shadow-[24px_24px_0px_0px_rgba(0,0,0,1)]"
             >
-              <h2 className="text-3xl font-black uppercase italic tracking-tighter mb-2">{selectingSize.name}</h2>
-              <p className="text-emerald-600 font-bold uppercase tracking-widest text-xs mb-8">Seleccione un talle para continuar</p>
+              <h2 className="text-4xl font-black uppercase italic tracking-tighter mb-2">{selectingSize.name}</h2>
+              <p className="text-emerald-600 font-bold uppercase tracking-widest text-sm mb-8">Seleccione un talle para continuar</p>
               
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-80 overflow-y-auto pr-2 custom-scrollbar p-1">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar p-1">
                 {selectingSize.variants?.map((v, i) => (
                   <button
                     key={i}
                     disabled={v.stock <= 0}
                     onClick={() => addToCart(selectingSize, v.size)}
-                    className={`aspect-square w-full p-2 border-2 border-slate-900 text-left transition-all flex flex-col justify-between gap-1 overflow-hidden ${
+                    className={`relative h-36 w-full p-4 border-2 border-slate-900 text-left transition-all flex flex-col justify-between overflow-hidden ${
+                      v.image ? 'text-white' : 'text-slate-900'
+                    } ${
                       v.stock > 0 
-                        ? 'hover:bg-emerald-50 shadow-[2px_2px_0px_0px_rgba(15,23,42,1)] hover:shadow-[1px_1px_0px_0px_rgba(15,23,42,1)] hover:translate-x-0.5 hover:translate-y-0.5' 
+                        ? 'hover:bg-emerald-50 shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] hover:shadow-[2px_2px_0px_0px_rgba(15,23,42,1)] hover:translate-x-0.5 hover:translate-y-0.5' 
                         : 'opacity-40 grayscale cursor-not-allowed'
                     }`}
                   >
-                    {/* Size variant local image preview if set */}
+                    {/* Size variant local image background option */}
                     {v.image ? (
-                      <div className="w-full h-12 sm:h-14 border border-slate-900 overflow-hidden bg-slate-50 flex-shrink-0">
-                        <img src={v.image} alt={v.size} className="w-full h-full object-cover" />
-                      </div>
+                      <>
+                        <img 
+                          src={v.image} 
+                          alt={v.size} 
+                          className="absolute inset-0 w-full h-full object-cover z-0" 
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-black/80 z-0" />
+                      </>
                     ) : (
-                      <div className="w-full h-12 sm:h-14 border border-dashed border-slate-200 flex items-center justify-center text-slate-200 flex-shrink-0">
-                        <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24">
+                      <div className="w-full h-12 border border-dashed border-slate-200 flex items-center justify-center text-slate-200 flex-shrink-0">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375 0 11-.75 0 .375 0 01.75 0z" />
                         </svg>
                       </div>
                     )}
-                    <span className="block font-black text-xs sm:text-[13px] italic leading-none break-words">{v.size}</span>
-                    <span className="text-[7px] sm:text-[8px] font-bold uppercase text-slate-500 mt-auto leading-none">STOCK: {v.stock}</span>
+                    <span className={`z-10 block font-black text-lg sm:text-2xl italic leading-tight break-words ${
+                      v.image ? 'text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]' : 'text-slate-900'
+                    }`}>{v.size}</span>
+                    <span className={`z-10 text-[10px] sm:text-xs font-bold uppercase mt-auto leading-none ${
+                      v.image ? 'text-emerald-300 drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]' : 'text-slate-500'
+                    }`}>STOCK: {v.stock}</span>
                   </button>
                 ))}
               </div>

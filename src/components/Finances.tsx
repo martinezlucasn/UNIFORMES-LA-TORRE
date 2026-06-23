@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { localDb } from '../localDb';
-import { Sale, Expense } from '../types';
+import { Sale, Expense, Rental } from '../types';
 import { 
   BarChart, 
   Bar, 
@@ -42,8 +42,9 @@ export default function Finances() {
   const loadData = () => {
     const sales = localDb.getSales();
     const exps = localDb.getExpenses();
+    const rentals = localDb.getRentals();
     setExpenses(exps);
-    processFinances(sales, exps);
+    processFinances(sales, exps, rentals);
   };
 
   const isStaffExpense = (name: string) => {
@@ -127,7 +128,7 @@ export default function Finances() {
 
   const staffSummary = getStaffSummary();
 
-  const processFinances = (sales: Sale[], exps: Expense[]) => {
+  const processFinances = (sales: Sale[], exps: Expense[], rentals: Rental[]) => {
     const monthlyMap = new Map<string, MonthlyData>();
 
     let tProfit = 0;
@@ -165,6 +166,29 @@ export default function Finances() {
       monthData.revenue += saleRevenue;
       monthData.productCost += saleProductCost;
       tRevenue += saleRevenue;
+    });
+
+    // Process Rentals as direct revenue
+    rentals.forEach(rental => {
+      const date = parseISO(rental.rentalDate);
+      const monthKey = format(date, 'yyyy-MM');
+      const monthName = format(date, 'MMM yy', { locale: es });
+
+      if (!monthlyMap.has(monthKey)) {
+        monthlyMap.set(monthKey, {
+          month: monthKey,
+          monthName: monthName,
+          revenue: 0,
+          productCost: 0,
+          opExpenses: 0,
+          totalCost: 0,
+          profit: 0
+        });
+      }
+
+      const monthData = monthlyMap.get(monthKey)!;
+      monthData.revenue += rental.price;
+      tRevenue += rental.price;
     });
 
     // Process Operational Expenses

@@ -8,6 +8,7 @@ import Finances from './components/Finances';
 import Adelantos from './components/Adelantos';
 import QuoteSystem from './components/QuoteSystem';
 import Settings from './components/Settings';
+import Rentals from './components/Rentals';
 import { 
   Menu, 
   Package, 
@@ -20,6 +21,7 @@ import {
   Coins,
   Wallet,
   Settings as SettingsIcon,
+  Briefcase
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -93,6 +95,12 @@ export default function App() {
             icon={<Coins size={20} />} 
             label="ADELANTOS" 
           />
+          <NavItem 
+            active={currentView === 'rentals'} 
+            onClick={() => handleNavigate('rentals')} 
+            icon={<Briefcase size={20} />} 
+            label="ALQUILERES" 
+          />
           
           <div className="pt-4 mt-4 border-t border-emerald-800">
             <NavItem 
@@ -124,6 +132,7 @@ export default function App() {
               {currentView === 'finances' && <Finances />}
               {currentView === 'advances' && <Adelantos onBack={() => setCurrentView('menu')} />}
               {currentView === 'settings' && <Settings />}
+              {currentView === 'rentals' && <Rentals />}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -170,7 +179,7 @@ function MainView({ onNavigate }: { onNavigate: (v: ViewType) => void }) {
         <p className="text-emerald-600 text-xl font-bold uppercase tracking-widest">Uniformes La Torre</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-12">
         <MenuCard 
           onClick={() => onNavigate('products')}
           icon={<Package className="w-12 h-12" />}
@@ -198,6 +207,13 @@ function MainView({ onNavigate }: { onNavigate: (v: ViewType) => void }) {
           title="PRESUPUESTOS"
           description="GENERAR COTIZACIONES"
           color="bg-slate-700"
+        />
+        <MenuCard 
+          onClick={() => onNavigate('rentals')}
+          icon={<Briefcase className="w-12 h-12" />}
+          title="ALQUILERES"
+          description="PRENDAS Y BOLETAS"
+          color="bg-emerald-800"
         />
       </div>
 

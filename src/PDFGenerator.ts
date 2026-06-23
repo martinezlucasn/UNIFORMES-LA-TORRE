@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
-import { Sale } from './types';
+import { Sale, Rental } from './types';
 
 export const generateReceiptPDF = (sale: Sale) => {
   // Use A5 landscape or a smaller format to represent half page, 
@@ -239,3 +239,170 @@ export const generateQuotePDF = (quoteItems: any[], customerName?: string) => {
   
   doc.save(`presupuesto_${customerName || 'sin_nombre'}.pdf`);
 };
+
+export const generateRentalReceiptPDF = (rental: Rental) => {
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const f = (n: number) => Math.round(n).toLocaleString('es-AR');
+
+  const drawHalf = (yOffset: number, isCopyComercio: boolean) => {
+    // Top right info
+    doc.setFontSize(7);
+    doc.setFont('Helvetica', 'italic');
+    doc.setTextColor(100, 116, 139);
+    doc.text(
+      `Documento no válido como factura comercial. ${isCopyComercio ? 'COPIA COMERCIO' : 'COPIA CLIENTE'}`,
+      pageWidth - 15,
+      yOffset + 12,
+      { align: 'right' }
+    );
+
+    doc.setFontSize(10);
+    doc.setFont('Helvetica', 'bold');
+    doc.setTextColor(30, 41, 59); // slate-800
+    doc.text(`Boleta Alquiler: ${rental.receiptNumber}`, pageWidth - 15, yOffset + 18, { align: 'right' });
+
+    const dateObj = new Date(rental.rentalDate);
+    doc.setFont('Helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text(`Fecha Alquiler: ${format(dateObj, 'dd/MM/yyyy HH:mm')}`, pageWidth - 15, yOffset + 23, { align: 'right' });
+
+    // Top left header
+    doc.setFontSize(18);
+    doc.setTextColor(5, 150, 105); // emerald-600
+    doc.setFont('Helvetica', 'bold');
+    doc.text('Uniformes La Torre', 15, yOffset + 15);
+
+    doc.setFontSize(8);
+    doc.setTextColor(30, 41, 59);
+    doc.setFont('Helvetica', 'normal');
+    doc.text('Avenida 44 Nº 1873 e/ 132 y 133, La Plata', 15, yOffset + 21);
+    doc.text('Whatsapp: (0221) 15-3090741', 15, yOffset + 25);
+
+    // Decorative Separator
+    doc.setDrawColor(15, 23, 42); // slate-900 / black
+    doc.setLineWidth(0.6);
+    doc.line(15, yOffset + 29, pageWidth - 15, yOffset + 29);
+
+    // Client Info Box
+    doc.setFillColor(248, 250, 252); // slate-50
+    doc.setLineWidth(0.3);
+    doc.setDrawColor(148, 163, 184); // slate-400
+    doc.rect(15, yOffset + 32, pageWidth - 30, 22, 'FD');
+
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.text('DATOS DE LA PERSONA QUE ALQUILA:', 18, yOffset + 37);
+
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(9);
+    doc.text(`Nombre y Apellido:`, 18, yOffset + 42);
+    doc.setFont('Helvetica', 'normal');
+    doc.text(rental.customerName, 50, yOffset + 42);
+
+    doc.setFont('Helvetica', 'bold');
+    doc.text(`Teléfono / Contacto:`, 18, yOffset + 47);
+    doc.setFont('Helvetica', 'normal');
+    doc.text(rental.customerContact, 50, yOffset + 47);
+
+    doc.setFont('Helvetica', 'bold');
+    doc.text(`Domicilio / Dirección:`, 18, yOffset + 52);
+    doc.setFont('Helvetica', 'normal');
+    doc.text(rental.customerAddress, 50, yOffset + 52);
+
+    // Table of Rented Products
+    const tableData = [
+      [
+        rental.productName,
+        '1',
+        `$${f(rental.price)}`,
+        `$${f(rental.price)}`
+      ]
+    ];
+
+    autoTable(doc, {
+      startY: yOffset + 58,
+      head: [['Artículo Alquilado', 'Cant.', 'Precio de Alquiler', 'Subtotal']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillColor: [5, 150, 105], fontSize: 9, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 8, textColor: [15, 23, 42] },
+      margin: { left: 15, right: 15 },
+      styles: { cellPadding: 2 }
+    });
+
+    const finalY = (doc as any).lastAutoTable.finalY + 6;
+
+    // Total Display
+    doc.setFontSize(11);
+    doc.setFont('Helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    const totalText = `TOTAL ALQUILER: $${f(rental.price)}`;
+    const textWidth = doc.getTextWidth(totalText);
+    doc.rect(pageWidth - 15 - textWidth - 4, finalY - 5, textWidth + 8, 8);
+    doc.text(totalText, pageWidth - 19, finalY + 1, { align: 'right' });
+
+    // Terms and Conditions Box
+    const termsY = finalY + 7;
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(5, 150, 105);
+    doc.text('MODO DE USO Y CONDICIONES GENERALES:', 15, termsY);
+
+    doc.setFont('Helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(71, 85, 105); // slate-600
+
+    const wrappedTerms = doc.splitTextToSize(rental.terms, pageWidth - 30);
+    const termsHeight = wrappedTerms.length * 3.5 + 4;
+    doc.rect(15, termsY + 2, pageWidth - 30, termsHeight, 'S');
+    doc.text(wrappedTerms, 18, termsY + 6);
+
+    // Signatures at bottom
+    const sigY = termsY + termsHeight + 12;
+    doc.setDrawColor(15, 23, 42);
+    doc.setLineWidth(0.4);
+    
+    // Client signature line
+    doc.line(20, sigY, 75, sigY);
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(30, 41, 59);
+    doc.text('Firma del Cliente', 47.5, sigY + 4, { align: 'center' });
+    doc.setFont('Helvetica', 'normal');
+    doc.text(`Aclaración: _________________`, 20, sigY + 8);
+
+    // Store signature line
+    doc.line(pageWidth - 75, sigY, pageWidth - 20, sigY);
+    doc.setFont('Helvetica', 'bold');
+    doc.text('Por Uniformes La Torre', pageWidth - 47.5, sigY + 4, { align: 'center' });
+  };
+
+  // Draw Top Half (Cliente Copy)
+  drawHalf(0, false);
+
+  // Dash Line in the Middle
+  doc.setDrawColor(148, 163, 184); // slate-400
+  doc.setLineWidth(0.3);
+  doc.setLineDashPattern([2, 2], 0);
+  doc.line(10, 148.5, pageWidth - 10, 148.5);
+  doc.setFontSize(7);
+  doc.setTextColor(148, 163, 184);
+  doc.setFont('Helvetica', 'bold');
+  doc.text('--- CORTAR AQUÍ (ENTREGAR UNA COPIA AL CLIENTE Y ARCHIVAR LA OTRA) ---', pageWidth / 2, 147.5, { align: 'center' });
+
+  // Reset dash pattern
+  doc.setLineDashPattern([], 0);
+
+  // Draw Bottom Half (Comercio Copy)
+  drawHalf(148.5, true);
+
+  doc.save(`boleta_alquiler_${rental.receiptNumber}.pdf`);
+};
+

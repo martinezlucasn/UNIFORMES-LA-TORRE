@@ -1,10 +1,13 @@
 
-import { Product, Sale, Expense } from './types';
+import { Product, Sale, Expense, RentalProduct, Rental } from './types';
 
 const PRODUCTS_KEY = 'torre_productos';
 const SALES_KEY = 'torre_ventas';
 const EXPENSES_KEY = 'torre_gastos';
 const RECEIPT_COUNTER_KEY = 'torre_boleta_counter';
+const RENTAL_PRODUCTS_KEY = 'torre_alquiler_productos';
+const RENTALS_KEY = 'torre_alquileres';
+const RENTAL_RECEIPT_COUNTER_KEY = 'torre_alquiler_boleta_counter';
 
 export const localDb = {
   // --- Productos ---
@@ -54,6 +57,106 @@ export const localDb = {
   deleteProduct: (id: string) => {
     const products = localDb.getProducts();
     localDb.saveProducts(products.filter(p => p.id !== id));
+  },
+
+  // --- Alquileres Productos ---
+  getRentalProducts: (): RentalProduct[] => {
+    const data = localStorage.getItem(RENTAL_PRODUCTS_KEY);
+    return data ? JSON.parse(data) : [];
+  },
+
+  saveRentalProducts: (products: RentalProduct[]) => {
+    localStorage.setItem(RENTAL_PRODUCTS_KEY, JSON.stringify(products));
+  },
+
+  addRentalProduct: (product: Omit<RentalProduct, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const products = localDb.getRentalProducts();
+    const newProduct: RentalProduct = {
+      ...product,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    products.push(newProduct);
+    localDb.saveRentalProducts(products);
+    return newProduct;
+  },
+
+  updateRentalProduct: (id: string, updates: Partial<RentalProduct>) => {
+    const products = localDb.getRentalProducts();
+    const index = products.findIndex(p => p.id === id);
+    if (index !== -1) {
+      products[index] = { 
+        ...products[index], 
+        ...updates, 
+        updatedAt: new Date().toISOString() 
+      };
+      localDb.saveRentalProducts(products);
+    }
+  },
+
+  deleteRentalProduct: (id: string) => {
+    const products = localDb.getRentalProducts();
+    localDb.saveRentalProducts(products.filter(p => p.id !== id));
+  },
+
+  // --- Alquileres ---
+  getRentals: (): Rental[] => {
+    const data = localStorage.getItem(RENTALS_KEY);
+    return data ? JSON.parse(data) : [];
+  },
+
+  saveRentals: (rentals: Rental[]) => {
+    localStorage.setItem(RENTALS_KEY, JSON.stringify(rentals));
+  },
+
+  addRental: (rental: Omit<Rental, 'id' | 'receiptNumber' | 'rentalDate' | 'returned'>) => {
+    const rentals = localDb.getRentals();
+    const receiptNumber = localDb.getNextRentalReceiptNumber();
+    const newRental: Rental = {
+      ...rental,
+      id: Date.now().toString(),
+      receiptNumber,
+      rentalDate: new Date().toISOString(),
+      returned: false
+    };
+    rentals.unshift(newRental);
+    localDb.saveRentals(rentals);
+
+    // Subtract stock from the rented product
+    const products = localDb.getRentalProducts();
+    const index = products.findIndex(p => p.id === rental.productId);
+    if (index !== -1) {
+      products[index].stock = Math.max(0, products[index].stock - 1);
+      localDb.saveRentalProducts(products);
+    }
+
+    return newRental;
+  },
+
+  returnRental: (id: string) => {
+    const rentals = localDb.getRentals();
+    const index = rentals.findIndex(r => r.id === id);
+    if (index !== -1 && !rentals[index].returned) {
+      rentals[index].returned = true;
+      rentals[index].returnedDate = new Date().toISOString();
+      localDb.saveRentals(rentals);
+
+      // Restore stock
+      const products = localDb.getRentalProducts();
+      const pIndex = products.findIndex(p => p.id === rentals[index].productId);
+      if (pIndex !== -1) {
+        products[pIndex].stock += 1;
+        localDb.saveRentalProducts(products);
+      }
+    }
+  },
+
+  getNextRentalReceiptNumber: (): string => {
+    const current = localStorage.getItem(RENTAL_RECEIPT_COUNTER_KEY);
+    const nextValue = current !== null ? parseInt(current) + 1 : 1;
+    localStorage.setItem(RENTAL_RECEIPT_COUNTER_KEY, nextValue.toString());
+    return 'ALQ-' + nextValue.toString().padStart(5, '0');
   },
 
   // --- Ventas ---
@@ -120,8 +223,11 @@ export const localDb = {
       products: localDb.getProducts(),
       sales: localDb.getSales(),
       expenses: localDb.getExpenses(),
+      rentalProducts: localDb.getRentalProducts(),
+      rentals: localDb.getRentals(),
       counter: localStorage.getItem(RECEIPT_COUNTER_KEY),
-      version: '1.1',
+      rentalCounter: localStorage.getItem(RENTAL_RECEIPT_COUNTER_KEY),
+      version: '1.2',
       exportedAt: new Date().toISOString()
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -139,7 +245,10 @@ export const localDb = {
       if (data.products) localDb.saveProducts(data.products);
       if (data.sales) localDb.saveSales(data.sales);
       if (data.expenses) localDb.saveExpenses(data.expenses);
+      if (data.rentalProducts) localDb.saveRentalProducts(data.rentalProducts);
+      if (data.rentals) localDb.saveRentals(data.rentals);
       if (data.counter) localStorage.setItem(RECEIPT_COUNTER_KEY, data.counter);
+      if (data.rentalCounter) localStorage.setItem(RENTAL_RECEIPT_COUNTER_KEY, data.rentalCounter);
       return true;
     } catch (e) {
       console.error('Error importing data:', e);

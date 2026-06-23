@@ -12,6 +12,33 @@ export interface Product {
   updatedAt: any;
 }
 
+export interface RentalProduct {
+  id: string;
+  name: string;
+  price: number;
+  details: string;
+  stock: number;
+  image?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Rental {
+  id: string;
+  receiptNumber: string;
+  customerName: string;
+  customerContact: string;
+  customerAddress: string;
+  productId: string;
+  productName: string;
+  price: number;
+  terms: string;
+  customerDniPhoto?: string; // base64 representation of the uploaded file
+  rentalDate: string;
+  returned: boolean;
+  returnedDate?: string;
+}
+
 export interface SaleItem {
   productId: string;
   name: string;
@@ -44,4 +71,4 @@ export interface Expense {
   date: string; // ISO String
 }
 
-export type ViewType = 'menu' | 'products' | 'sales' | 'history' | 'finances' | 'quotes' | 'settings' | 'advances';
+export type ViewType = 'menu' | 'products' | 'sales' | 'history' | 'finances' | 'quotes' | 'settings' | 'advances' | 'rentals';
