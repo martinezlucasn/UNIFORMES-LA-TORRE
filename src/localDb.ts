@@ -123,13 +123,22 @@ export const localDb = {
     rentals.unshift(newRental);
     localDb.saveRentals(rentals);
 
-    // Subtract stock from the rented product
+    // Subtract stock from the rented products
     const products = localDb.getRentalProducts();
-    const index = products.findIndex(p => p.id === rental.productId);
-    if (index !== -1) {
-      products[index].stock = Math.max(0, products[index].stock - 1);
-      localDb.saveRentalProducts(products);
+    if (newRental.items && newRental.items.length > 0) {
+      newRental.items.forEach(item => {
+        const index = products.findIndex(p => p.id === item.productId);
+        if (index !== -1) {
+          products[index].stock = Math.max(0, products[index].stock - item.quantity);
+        }
+      });
+    } else if (newRental.productId) {
+      const index = products.findIndex(p => p.id === newRental.productId);
+      if (index !== -1) {
+        products[index].stock = Math.max(0, products[index].stock - 1);
+      }
     }
+    localDb.saveRentalProducts(products);
 
     return newRental;
   },
@@ -144,11 +153,21 @@ export const localDb = {
 
       // Restore stock
       const products = localDb.getRentalProducts();
-      const pIndex = products.findIndex(p => p.id === rentals[index].productId);
-      if (pIndex !== -1) {
-        products[pIndex].stock += 1;
-        localDb.saveRentalProducts(products);
+      const rental = rentals[index];
+      if (rental.items && rental.items.length > 0) {
+        rental.items.forEach(item => {
+          const pIndex = products.findIndex(p => p.id === item.productId);
+          if (pIndex !== -1) {
+            products[pIndex].stock += item.quantity;
+          }
+        });
+      } else if (rental.productId) {
+        const pIndex = products.findIndex(p => p.id === rental.productId);
+        if (pIndex !== -1) {
+          products[pIndex].stock += 1;
+        }
       }
+      localDb.saveRentalProducts(products);
     }
   },
 
@@ -157,6 +176,18 @@ export const localDb = {
     const nextValue = current !== null ? parseInt(current) + 1 : 1;
     localStorage.setItem(RENTAL_RECEIPT_COUNTER_KEY, nextValue.toString());
     return 'ALQ-' + nextValue.toString().padStart(5, '0');
+  },
+
+  getStoreLogo: (): string | null => {
+    return localStorage.getItem('torre_store_logo');
+  },
+
+  saveStoreLogo: (logoBase64: string) => {
+    localStorage.setItem('torre_store_logo', logoBase64);
+  },
+
+  deleteStoreLogo: () => {
+    localStorage.removeItem('torre_store_logo');
   },
 
   // --- Ventas ---

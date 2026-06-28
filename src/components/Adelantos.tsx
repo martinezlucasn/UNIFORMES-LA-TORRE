@@ -3,13 +3,14 @@ import { localDb } from '../localDb';
 import { Banknote, User, Send, ArrowLeft } from 'lucide-react';
 import { motion } from 'motion/react';
 
-const EMPLOYEES = ['SAMANTA', 'BRAIAN', 'ROMINA'];
+const EMPLOYEES = ['ROMINA', 'VALERIA', 'ETELVINA', 'JULIETA'];
 
 export default function Adelantos({ onBack }: { onBack: () => void }) {
   const [amounts, setAmounts] = useState<{ [key: string]: string }>({
-    SAMANTA: '',
-    BRAIAN: '',
-    ROMINA: ''
+    ROMINA: '',
+    VALERIA: '',
+    ETELVINA: '',
+    JULIETA: ''
   });
 
   const handleSave = (employee: string) => {

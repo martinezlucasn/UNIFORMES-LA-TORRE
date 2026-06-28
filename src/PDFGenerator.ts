@@ -251,38 +251,75 @@ export const generateRentalReceiptPDF = (rental: Rental) => {
   const f = (n: number) => Math.round(n).toLocaleString('es-AR');
 
   const drawHalf = (yOffset: number, isCopyComercio: boolean) => {
-    // Top right info
+    // Top Copy Type Indicator
     doc.setFontSize(7);
     doc.setFont('Helvetica', 'italic');
     doc.setTextColor(100, 116, 139);
     doc.text(
       `Documento no válido como factura comercial. ${isCopyComercio ? 'COPIA COMERCIO' : 'COPIA CLIENTE'}`,
-      pageWidth - 15,
-      yOffset + 12,
-      { align: 'right' }
+      pageWidth / 2,
+      yOffset + 7,
+      { align: 'center' }
     );
 
-    doc.setFontSize(10);
-    doc.setFont('Helvetica', 'bold');
-    doc.setTextColor(30, 41, 59); // slate-800
-    doc.text(`Boleta Alquiler: ${rental.receiptNumber}`, pageWidth - 15, yOffset + 18, { align: 'right' });
+    // Upper Center Logo
+    const logoBase64 = localStorage.getItem('torre_store_logo');
+    if (logoBase64) {
+      try {
+        const props = doc.getImageProperties(logoBase64);
+        const imgWidth = props.width;
+        const imgHeight = props.height;
+        const aspectRatio = imgWidth / imgHeight;
 
-    const dateObj = new Date(rental.rentalDate);
-    doc.setFont('Helvetica', 'normal');
+        // Base width is 4 centimeters (40 mm) as requested
+        let logoWidth = 40;
+        let logoHeight = logoWidth / aspectRatio;
+
+        // To prevent layout overflow if the logo is extremely tall:
+        // constrain height to max 18 mm and scale width down accordingly.
+        if (logoHeight > 18) {
+          logoHeight = 18;
+          logoWidth = logoHeight * aspectRatio;
+        }
+
+        const xPos = pageWidth / 2 - logoWidth / 2;
+        // Vertically center inside the 18 mm tall space (from yOffset + 10 to yOffset + 28)
+        const yPos = yOffset + 10 + (18 - logoHeight) / 2;
+
+        doc.addImage(logoBase64, props.fileType, xPos, yPos, logoWidth, logoHeight);
+      } catch (e) {
+        console.error("Error adding store logo to PDF", e);
+        // Fallback: draw placeholder text
+        doc.setFontSize(14);
+        doc.setFont('Helvetica', 'bold');
+        doc.setTextColor(5, 150, 105);
+        doc.text('Uniformes La Torre', pageWidth / 2, yOffset + 21, { align: 'center' });
+      }
+    } else {
+      // Fallback text "Uniformes La Torre" in big bold text centered
+      doc.setFontSize(14);
+      doc.setFont('Helvetica', 'bold');
+      doc.setTextColor(5, 150, 105);
+      doc.text('Uniformes La Torre', pageWidth / 2, yOffset + 21, { align: 'center' });
+    }
+
+    // Top left header: Dirección and below Whatsapp
     doc.setFontSize(8);
-    doc.text(`Fecha Alquiler: ${format(dateObj, 'dd/MM/yyyy HH:mm')}`, pageWidth - 15, yOffset + 23, { align: 'right' });
-
-    // Top left header
-    doc.setFontSize(18);
-    doc.setTextColor(5, 150, 105); // emerald-600
+    doc.setTextColor(30, 41, 59);
     doc.setFont('Helvetica', 'bold');
-    doc.text('Uniformes La Torre', 15, yOffset + 15);
+    doc.text('Av. 44 132 y 133', 15, yOffset + 18);
+    doc.setFont('Helvetica', 'normal');
+    doc.text('Whatsapp: (0221) 15-3090741', 15, yOffset + 23);
 
+    // Top right header: Fecha, below Hora, below Número de Boleta
+    const dateObj = new Date(rental.rentalDate);
     doc.setFontSize(8);
     doc.setTextColor(30, 41, 59);
     doc.setFont('Helvetica', 'normal');
-    doc.text('Avenida 44 Nº 1873 e/ 132 y 133, La Plata', 15, yOffset + 21);
-    doc.text('Whatsapp: (0221) 15-3090741', 15, yOffset + 25);
+    doc.text(`Fecha: ${format(dateObj, 'dd/MM/yyyy')}`, pageWidth - 15, yOffset + 16, { align: 'right' });
+    doc.text(`Hora: ${format(dateObj, 'HH:mm')}`, pageWidth - 15, yOffset + 21, { align: 'right' });
+    doc.setFont('Helvetica', 'bold');
+    doc.text(`Boleta N°: ${rental.receiptNumber}`, pageWidth - 15, yOffset + 26, { align: 'right' });
 
     // Decorative Separator
     doc.setDrawColor(15, 23, 42); // slate-900 / black
@@ -317,14 +354,21 @@ export const generateRentalReceiptPDF = (rental: Rental) => {
     doc.text(rental.customerAddress, 50, yOffset + 52);
 
     // Table of Rented Products
-    const tableData = [
-      [
-        rental.productName,
-        '1',
-        `$${f(rental.price)}`,
-        `$${f(rental.price)}`
-      ]
-    ];
+    const tableData = rental.items && rental.items.length > 0
+      ? rental.items.map(item => [
+          item.productName,
+          item.quantity.toString(),
+          `$${f(item.price)}`,
+          `$${f(item.price * item.quantity)}`
+        ])
+      : [
+          [
+            rental.productName || 'PRENDA ALQUILADA',
+            '1',
+            `$${f(rental.price || 0)}`,
+            `$${f(rental.price || 0)}`
+          ]
+        ];
 
     autoTable(doc, {
       startY: yOffset + 58,
@@ -343,7 +387,8 @@ export const generateRentalReceiptPDF = (rental: Rental) => {
     doc.setFontSize(11);
     doc.setFont('Helvetica', 'bold');
     doc.setTextColor(15, 23, 42);
-    const totalText = `TOTAL ALQUILER: $${f(rental.price)}`;
+    const totalAmount = rental.total !== undefined ? rental.total : (rental.price || 0);
+    const totalText = `TOTAL ALQUILER: $${f(totalAmount)}`;
     const textWidth = doc.getTextWidth(totalText);
     doc.rect(pageWidth - 15 - textWidth - 4, finalY - 5, textWidth + 8, 8);
     doc.text(totalText, pageWidth - 19, finalY + 1, { align: 'right' });

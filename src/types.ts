@@ -23,20 +23,30 @@ export interface RentalProduct {
   updatedAt: string;
 }
 
+export interface RentalItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  price: number;
+}
+
 export interface Rental {
   id: string;
   receiptNumber: string;
   customerName: string;
   customerContact: string;
   customerAddress: string;
-  productId: string;
-  productName: string;
-  price: number;
+  items: RentalItem[];
+  total: number;
   terms: string;
   customerDniPhoto?: string; // base64 representation of the uploaded file
   rentalDate: string;
   returned: boolean;
   returnedDate?: string;
+  // Older properties for backwards compatibility
+  productId?: string;
+  productName?: string;
+  price?: number;
 }
 
 export interface SaleItem {

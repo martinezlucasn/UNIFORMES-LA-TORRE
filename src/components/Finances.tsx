@@ -57,10 +57,9 @@ export default function Finances() {
   const staffTotal = staffExpenses.reduce((acc, curr) => acc + curr.amount, 0);
 
   const getStaffSummary = () => {
-    const names = ['SAMANTA', 'BRAIAN', 'ROMINA', 'TÍA', 'PRIMO'];
+    const names = ['ROMINA', 'VALERIA', 'ETELVINA', 'JULIETA', 'TÍA', 'PRIMO'];
     const fortnightSalaries: { [key: string]: number } = { 
-      'SAMANTA': 300000,
-      'BRAIAN': 250000
+      'JULIETA': 250000
     };
     
     const now = new Date();

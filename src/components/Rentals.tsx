@@ -38,13 +38,17 @@ export default function Rentals() {
     stock: ''
   });
 
-  // States for Renting
-  const [selectedProduct, setSelectedProduct] = useState<RentalProduct | null>(null);
+  // States for Renting (Cart)
+  const [cart, setCart] = useState<{ productId: string; productName: string; quantity: number; price: number; maxStock: number }[]>([]);
   const [customerName, setCustomerName] = useState('');
   const [customerContact, setCustomerContact] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
   const [dniPhoto, setDniPhoto] = useState<string>('');
   const [isDragging, setIsDragging] = useState(false);
+
+  // States for local store logo
+  const [storeLogo, setStoreLogo] = useState<string | null>(null);
+  const [isLogoDragging, setIsLogoDragging] = useState(false);
   
   const defaultTerms = 
     "1. El cliente se compromete a devolver las prendas alquiladas en las mismas condiciones de higiene y estado óptimo en las que fueron entregadas.\n" +
@@ -69,6 +73,7 @@ export default function Rentals() {
   const loadAllData = () => {
     setRentalProducts(localDb.getRentalProducts());
     setRentals(localDb.getRentals());
+    setStoreLogo(localDb.getStoreLogo());
   };
 
   // --- Manage Rental Products ---
@@ -147,19 +152,100 @@ export default function Rentals() {
     }
   };
 
+  // --- Image Handling for Store Logo ---
+  const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      convertLogoToBase64(file);
+    }
+  };
+
+  const convertLogoToBase64 = (file: File) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      const base64 = reader.result as string;
+      localDb.saveStoreLogo(base64);
+      setStoreLogo(base64);
+    };
+    reader.onerror = (error) => {
+      console.error('Error al convertir logo a Base64:', error);
+    };
+  };
+
+  const handleLogoDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsLogoDragging(true);
+  };
+
+  const handleLogoDragLeave = () => {
+    setIsLogoDragging(false);
+  };
+
+  const handleLogoDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsLogoDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      convertLogoToBase64(file);
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    if (confirm('¿Desea eliminar el logo del local de las boletas?')) {
+      localDb.deleteStoreLogo();
+      setStoreLogo(null);
+    }
+  };
+
+  // --- Cart Management Functions ---
+  const handleAddToCart = (prod: RentalProduct) => {
+    if (prod.stock <= 0) return;
+    setCart(prev => {
+      const existing = prev.find(item => item.productId === prod.id);
+      if (existing) {
+        return prev.map(item => 
+          item.productId === prod.id 
+            ? { ...item, quantity: Math.min(item.maxStock, item.quantity + 1) } 
+            : item
+        );
+      } else {
+        return [...prev, {
+          productId: prod.id,
+          productName: prod.name,
+          quantity: 1,
+          price: prod.price,
+          maxStock: prod.stock
+        }];
+      }
+    });
+  };
+
+  const handleRemoveFromCart = (productId: string) => {
+    setCart(prev => prev.filter(item => item.productId !== productId));
+  };
+
+  const handleUpdateCartQty = (productId: string, newQty: number) => {
+    setCart(prev => prev.map(item => {
+      if (item.productId === productId) {
+        const qty = Math.max(1, Math.min(item.maxStock, newQty));
+        return { ...item, quantity: qty };
+      }
+      return item;
+    }));
+  };
+
+  const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
   // --- Register Rental ---
   const handleConfirmRental = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProduct) {
-      alert('Por favor, seleccione un artículo para alquilar.');
+    if (cart.length === 0) {
+      alert('Por favor, seleccione al menos un artículo para alquilar.');
       return;
     }
     if (!customerName || !customerContact || !customerAddress) {
       alert('Todos los datos del cliente son obligatorios (Nombre, Contacto, Domicilio).');
-      return;
-    }
-    if (selectedProduct.stock <= 0) {
-      alert('No hay stock disponible de este artículo para alquilar.');
       return;
     }
 
@@ -167,9 +253,13 @@ export default function Rentals() {
       customerName: customerName.toUpperCase(),
       customerContact: customerContact.toUpperCase(),
       customerAddress: customerAddress.toUpperCase(),
-      productId: selectedProduct.id,
-      productName: selectedProduct.name,
-      price: selectedProduct.price,
+      items: cart.map(c => ({
+        productId: c.productId,
+        productName: c.productName,
+        quantity: c.quantity,
+        price: c.price
+      })),
+      total: cartTotal,
       terms: terms,
       customerDniPhoto: dniPhoto || undefined
     };
@@ -180,7 +270,7 @@ export default function Rentals() {
     generateRentalReceiptPDF(newRental);
 
     // Reset Rental Form
-    setSelectedProduct(null);
+    setCart([]);
     setCustomerName('');
     setCustomerContact('');
     setCustomerAddress('');
@@ -194,7 +284,7 @@ export default function Rentals() {
 
   // --- Return Rental item ---
   const handleReturnRental = (id: string) => {
-    if (confirm('¿Confirmar que el artículo ha sido devuelto? Esto restablecerá el stock del artículo.')) {
+    if (confirm('¿Confirmar que las prendas alquiladas han sido devueltas? Esto restablecerá el stock.')) {
       localDb.returnRental(id);
       loadAllData();
     }
@@ -205,7 +295,8 @@ export default function Rentals() {
     const matchesSearch = 
       rental.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       rental.receiptNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      rental.productName.toLowerCase().includes(searchQuery.toLowerCase());
+      (rental.productName && rental.productName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (rental.items && rental.items.some(item => item.productName.toLowerCase().includes(searchQuery.toLowerCase())));
     
     if (filterStatus === 'all') return matchesSearch;
     if (filterStatus === 'pending') return matchesSearch && !rental.returned;
@@ -265,7 +356,7 @@ export default function Rentals() {
               <div className="flex items-center gap-2 mb-4 pb-2 border-b-2 border-slate-100">
                 <Package className="text-emerald-600" size={24} />
                 <h3 className="text-xl font-black uppercase italic tracking-tighter text-slate-900">
-                  1. Seleccione Artículo de Alquiler
+                  1. Seleccione Artículos y Cantidades para Alquilar
                 </h3>
               </div>
 
@@ -274,34 +365,87 @@ export default function Rentals() {
                   No hay artículos de alquiler en stock. Vaya a la pestaña "STOCK DE ALQUILER" para agregar artículos.
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar p-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar p-1">
                   {rentalProducts.map((prod) => {
-                    const isSelected = selectedProduct?.id === prod.id;
+                    const cartItem = cart.find(item => item.productId === prod.id);
                     const outOfStock = prod.stock <= 0;
                     return (
-                      <button
+                      <div
                         key={prod.id}
-                        type="button"
-                        disabled={outOfStock}
-                        onClick={() => setSelectedProduct(prod)}
-                        className={`text-left p-4 border-2 transition-all flex flex-col justify-between ${
-                          outOfStock ? 'opacity-45 bg-slate-50 border-slate-200 cursor-not-allowed' :
-                          isSelected 
-                            ? 'bg-emerald-50 border-emerald-600 shadow-[4px_4px_0px_0px_rgba(5,150,105,1)]' 
-                            : 'bg-white border-slate-900 hover:bg-slate-50 shadow-[3px_3px_0px_0px_rgba(15,23,42,1)] hover:shadow-[1px_1px_0px_0px_rgba(15,23,42,1)] hover:translate-x-0.5 hover:translate-y-0.5'
+                        className={`p-4 border-2 transition-all flex flex-col justify-between ${
+                          outOfStock 
+                            ? 'opacity-50 bg-slate-50 border-slate-200' 
+                            : cartItem 
+                              ? 'bg-emerald-50/50 border-emerald-600 shadow-[4px_4px_0px_0px_rgba(5,150,105,1)]' 
+                              : 'bg-white border-slate-900 shadow-[3px_3px_0px_0px_rgba(15,23,42,1)]'
                         }`}
                       >
                         <div>
                           <p className="font-black text-sm uppercase tracking-tight text-slate-950 truncate">{prod.name}</p>
                           <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">{prod.details || 'SIN DETALLES'}</p>
                         </div>
-                        <div className="flex items-end justify-between mt-4">
-                          <span className="text-emerald-600 font-black text-lg italic">${Math.round(prod.price).toLocaleString('es-AR')}</span>
+                        
+                        <div className="flex items-center justify-between mt-4">
+                          <span className="text-emerald-600 font-black text-base italic">
+                            ${Math.round(prod.price).toLocaleString('es-AR')}
+                          </span>
                           <span className={`text-[9px] font-black uppercase px-2 py-0.5 ${outOfStock ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-800'}`}>
                             STOCK: {prod.stock}
                           </span>
                         </div>
-                      </button>
+
+                        <div className="mt-3 pt-3 border-t border-slate-100">
+                          {outOfStock ? (
+                            <div className="text-center text-[10px] font-black text-red-600 uppercase py-1 bg-red-50 border border-red-200">
+                              SIN STOCK DISPONIBLE
+                            </div>
+                          ) : cartItem ? (
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-1 border-2 border-slate-900 bg-white">
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateCartQty(prod.id, cartItem.quantity - 1)}
+                                  className="px-2 py-1 font-black text-xs hover:bg-slate-100 transition-colors border-r border-slate-900"
+                                >
+                                  -
+                                </button>
+                                <span className="px-2 font-black text-xs text-slate-950 w-8 text-center">
+                                  {cartItem.quantity}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateCartQty(prod.id, cartItem.quantity + 1)}
+                                  disabled={cartItem.quantity >= prod.stock}
+                                  className={`px-2 py-1 font-black text-xs border-l border-slate-900 transition-colors ${
+                                    cartItem.quantity >= prod.stock 
+                                      ? 'bg-slate-100 text-slate-300 cursor-not-allowed' 
+                                      : 'hover:bg-slate-100'
+                                  }`}
+                                >
+                                  +
+                                </button>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveFromCart(prod.id)}
+                                className="p-1.5 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition-all border border-red-200 hover:border-red-600"
+                                title="Quitar de la boleta"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleAddToCart(prod)}
+                              className="w-full py-1.5 bg-slate-900 hover:bg-emerald-600 text-white hover:text-white font-black text-[10px] uppercase tracking-wider flex items-center justify-center gap-1 transition-colors"
+                            >
+                              <Plus size={12} />
+                              AGREGAR AL ALQUILER
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
@@ -467,16 +611,25 @@ export default function Rentals() {
               </h3>
 
               <div className="space-y-4 font-bold text-sm">
-                <div className="flex justify-between border-b border-emerald-800/40 pb-2">
-                  <span className="text-emerald-400 uppercase text-xs">Artículo:</span>
-                  <span className="text-right truncate max-w-[150px] uppercase font-black">
-                    {selectedProduct ? selectedProduct.name : 'NO SELECCIONADO'}
-                  </span>
+                <div className="border-b border-emerald-800/40 pb-2 space-y-1">
+                  <span className="text-emerald-400 uppercase text-xs block">Artículos Seleccionados:</span>
+                  {cart.length === 0 ? (
+                    <span className="text-amber-400 uppercase font-black text-xs block">NINGUNO SELECCIONADO</span>
+                  ) : (
+                    <div className="space-y-1 max-h-24 overflow-y-auto custom-scrollbar pr-1">
+                      {cart.map(item => (
+                        <div key={item.productId} className="flex justify-between text-xs font-black uppercase text-white">
+                          <span className="truncate max-w-[140px]">{item.productName}</span>
+                          <span>x{item.quantity} - ${Math.round(item.price * item.quantity).toLocaleString('es-AR')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="flex justify-between border-b border-emerald-800/40 pb-2">
-                  <span className="text-emerald-400 uppercase text-xs">Precio Alquiler:</span>
+                  <span className="text-emerald-400 uppercase text-xs">Total Alquiler:</span>
                   <span className="text-right font-black italic text-lg text-emerald-300">
-                    {selectedProduct ? `$${Math.round(selectedProduct.price).toLocaleString('es-AR')}` : '-'}
+                    ${Math.round(cartTotal).toLocaleString('es-AR')}
                   </span>
                 </div>
                 <div className="flex justify-between border-b border-emerald-800/40 pb-2">
@@ -501,10 +654,10 @@ export default function Rentals() {
 
               <button
                 type="button"
-                disabled={!selectedProduct || !customerName || !customerContact || !customerAddress}
+                disabled={cart.length === 0 || !customerName || !customerContact || !customerAddress}
                 onClick={handleConfirmRental}
                 className={`w-full py-4 border-2 border-slate-900 font-black uppercase italic tracking-wider text-center text-sm shadow-[4px_4px_0px_0px_rgba(15,23,42,1)] active:shadow-none active:translate-x-1 active:translate-y-1 transition-all ${
-                  (!selectedProduct || !customerName || !customerContact || !customerAddress)
+                  (cart.length === 0 || !customerName || !customerContact || !customerAddress)
                     ? 'bg-emerald-950/40 text-emerald-800 border-emerald-950 cursor-not-allowed shadow-none'
                     : 'bg-white text-slate-900 hover:bg-emerald-50'
                 }`}
@@ -591,7 +744,9 @@ export default function Rentals() {
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <h4 className="text-xs font-black uppercase text-slate-400">MONTO DE ALQUILER</h4>
-                        <h3 className="text-3xl font-black text-slate-900 tracking-tighter italic">${Math.round(rental.price).toLocaleString('es-AR')}</h3>
+                        <h3 className="text-3xl font-black text-slate-900 tracking-tighter italic">
+                          ${Math.round(rental.total !== undefined ? rental.total : (rental.price || 0)).toLocaleString('es-AR')}
+                        </h3>
                       </div>
                       
                       <div className="flex gap-2">
@@ -636,11 +791,25 @@ export default function Rentals() {
                     {/* Article Info */}
                     <div className="mb-6 space-y-2.5 border-t border-slate-100 pt-4">
                       <div>
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">ARTÍCULO ALQUILADO</p>
-                        <p className="text-xs font-black uppercase text-slate-950 flex items-center gap-2 mt-0.5">
-                          <Package size={14} className="text-emerald-600" />
-                          {rental.productName}
-                        </p>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">ARTÍCULOS ALQUILADOS</p>
+                        {rental.items && rental.items.length > 0 ? (
+                          <div className="space-y-1 mt-1 max-h-24 overflow-y-auto custom-scrollbar">
+                            {rental.items.map((item, idx) => (
+                              <p key={idx} className="text-xs font-black uppercase text-slate-950 flex items-center justify-between">
+                                <span className="flex items-center gap-1.5 truncate">
+                                  <Package size={12} className="text-emerald-600 flex-shrink-0" />
+                                  <span className="truncate">{item.productName}</span>
+                                </span>
+                                <span className="text-slate-500 font-bold text-[10px]">x{item.quantity}</span>
+                              </p>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs font-black uppercase text-slate-950 flex items-center gap-2 mt-0.5">
+                            <Package size={14} className="text-emerald-600" />
+                            {rental.productName || 'PRENDA ALQUILADA'}
+                          </p>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-2 gap-2 text-[9px] font-bold uppercase text-slate-400">
@@ -873,6 +1042,69 @@ export default function Rentals() {
                 </form>
               </div>
             )}
+
+            {/* Store Logo Management Card */}
+            <div className="bg-white border-4 border-slate-900 p-6 shadow-[8px_8px_0px_0px_rgba(15,23,42,1)] mt-8">
+              <div className="flex items-center gap-2 mb-4 pb-2 border-b-2 border-slate-100">
+                <ImageIcon className="text-emerald-600" size={24} />
+                <h3 className="text-lg font-black uppercase italic tracking-tighter text-slate-900">
+                  Logo del Local para Boletas
+                </h3>
+              </div>
+              <p className="text-[10px] text-slate-500 font-bold uppercase mb-3 leading-tight">
+                SUBIR EL LOGO DEL LOCAL PARA MOSTRARLO CENTRADO EN LA PARTE SUPERIOR DE LAS BOLETAS (TAMAÑO 4CM).
+              </p>
+
+              <div
+                onDragOver={handleLogoDragOver}
+                onDragLeave={handleLogoDragLeave}
+                onDrop={handleLogoDrop}
+                className={`border-4 border-dashed rounded-none p-4 text-center transition-all cursor-pointer flex flex-col items-center justify-center min-h-[140px] ${
+                  isLogoDragging 
+                    ? 'border-emerald-600 bg-emerald-50 scale-102' 
+                    : storeLogo 
+                      ? 'border-emerald-600 bg-white' 
+                      : 'border-slate-300 hover:border-slate-900 bg-slate-50'
+                }`}
+                onClick={() => document.getElementById('logo-file-input')?.click()}
+              >
+                <input
+                  id="logo-file-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoFileChange}
+                  className="hidden"
+                />
+
+                {storeLogo ? (
+                  <div className="space-y-3 w-full">
+                    <img 
+                      src={storeLogo} 
+                      alt="Logo del Local" 
+                      className="max-h-16 mx-auto object-contain border border-slate-200 p-1"
+                    />
+                    <div className="flex justify-center">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveLogo();
+                        }}
+                        className="bg-red-50 text-red-600 border border-red-200 text-[10px] font-black uppercase px-3 py-1 hover:bg-red-100 transition-colors"
+                      >
+                        ELIMINAR LOGO
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="mx-auto text-slate-400 mb-2" size={24} />
+                    <p className="font-black uppercase text-[11px] text-slate-900 mb-0.5">Arrastre el Logo aquí</p>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase">o haga click para explorar</p>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
